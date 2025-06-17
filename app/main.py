@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
 from app.core.config import DEV_MODE
+from app.domains.users.api import router as users_router
 
 
 @asynccontextmanager
@@ -17,6 +18,9 @@ app = FastAPI(
     lifespan=lifespan,
     default_response_class=ORJSONResponse,
 )
+
+
+app.include_router(users_router, prefix="/users")
 
 
 @app.get("/")
