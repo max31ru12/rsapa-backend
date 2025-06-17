@@ -1,6 +1,6 @@
 services:
-  database:
-    container_name: database
+  rsapa_database:
+    container_name: rsapa_database
     image: postgres:alpine
     environment:
       - POSTGRES_USER=${DB_USER:-test}
@@ -20,13 +20,13 @@ services:
       - default
 
 
-  backend-template:
-    container_name: backend-template
+  rsapa_backend:
+    container_name: rsapa_backend
     build:
       context: .
       dockerfile: compose/backend/Dockerfile
     depends_on:
-      - database
+      - rsapa_database
     environment:
       - DB_HOST=database
       - DB_PORT=${DB_PORT:-5432}
