@@ -14,6 +14,8 @@ class SQLAlchemyUnitOfWork:
         else:
             await self.commit()
 
+        await self._session.close()
+
     async def rollback(self):
         await self._session.rollback()
 
