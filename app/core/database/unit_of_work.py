@@ -5,7 +5,7 @@ from app.core.database.setup_db import session_factory
 
 class SQLAlchemyUnitOfWork:
     def __init__(self, session: AsyncSession = None):
-        self._session = session_factory()
+        self._session = session or session_factory()
 
     async def __aenter__(self):
         return self  # Возвращает сам объект, чтобы можно было использовать внутри контекстного менеджера async with

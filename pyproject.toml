@@ -27,4 +27,33 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.12.0"
+pytest = "^8.4.1"
+faker = "^37.4.0"
+httpx = "^0.28.1"
+
+[tool.ruff]
+line-length = 120  # Устанавливаем максимальную длину строки в 120 символов
+
+[tool.ruff.lint]
+select = [
+    "F",  # flake8 - ошибки переменных (неиспользуемые, неопределенные)
+    "I",  # isort - упорядочевание импортов
+    "E",  # pycodestyle - ошибки форматирования
+    "W",  # pycodestyle - предупреждения о коде
+    "B",  # flake8-bugbear потентциальные баги
+    "C90", #  ьссфиу - сложность кода
+]
+ignore = [
+    "E501", # PEP8 length > 79
+] # ignored rules
+
+[tool.ruff.format]
+quote-style = "double"  # Всегда использовать двойные кавычки
+indent-style = "space"  # Использовать пробелы вместо табов (tab)
+line-ending = "lf"  # Использовать Unix-стиль переносов строк
+
+[tool.ruff.isort]
+known-first-party = ["my_project"]  # Эти настройки сортируют импорты
+combine-as-imports = true
+
 

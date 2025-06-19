@@ -8,6 +8,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD:-test}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./compose/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     restart: unless-stopped

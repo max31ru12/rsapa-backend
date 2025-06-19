@@ -8,24 +8,19 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from faker import Faker
 
 from app.core.database.setup_db import Base
+from app.core.config import TEST_DB_URL
+from app.domains.users.uow import UserUnitOfWork
 from app.main import app
 
 pytest_plugins = ("anyio",)
-
-TEST_DB_URL = "postgresql+asyncpg://test:test@localhost:5432/test"
 
 
 @pytest.fixture(scope="session")
 def anyio_backend() -> str:
     return "asyncio"
-
-
-@pytest.fixture(scope="function")
-async def client() -> AsyncClient:
-    async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as ac:
-        yield ac
 
 
 @pytest.fixture(scope="session")
@@ -34,19 +29,32 @@ def test_engine() -> AsyncEngine:
 
 
 @pytest.fixture(scope="session")
-def async_session_maker(test_engine) -> async_sessionmaker[AsyncSession]:
+def test_session_factory(test_engine) -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(bind=test_engine, expire_on_commit=False)
 
 
 @pytest.fixture(scope="function")
-async def session(async_session_maker) -> AsyncSession:
-    async with async_session_maker() as session:
+async def test_session(test_session_factory) -> AsyncSession:
+    async with test_session_factory() as session:
         yield session
         # Clear data after single test
         await session.rollback()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture()
+def override_user_uow(test_session: AsyncSession):
+    return UserUnitOfWork(test_session)
+
+
+@pytest.fixture(autouse=True)
+def override_dependencies(override_user_uow):
+    from app.domains.users.uow import get_user_unit_of_work
+    app.dependency_overrides[get_user_unit_of_work] = lambda: override_user_uow
+    yield
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function", autouse=True)
 async def setup_database(test_engine) -> AsyncIterator[None]:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -54,3 +62,16 @@ async def setup_database(test_engine) -> AsyncIterator[None]:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await test_engine.dispose()
+
+
+@pytest.fixture(scope="function")
+async def client() -> AsyncClient:
+    from app.main import app
+    async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as ac:
+        yield ac
+
+
+@pytest.fixture(scope="session")
+def faker():
+    fake = Faker()
+    yield fake
