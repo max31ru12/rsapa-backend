@@ -5,6 +5,7 @@ from fastapi.responses import ORJSONResponse
 
 from app.core.config import DEV_MODE
 from app.domains.users.api import router as users_router
+from app.domains.auth.api import router as auth_router
 
 
 @asynccontextmanager
@@ -20,7 +21,8 @@ app = FastAPI(
 )
 
 
-app.include_router(users_router, prefix="/users")
+app.include_router(users_router, prefix="/api/users")
+app.include_router(auth_router, prefix="/api/auth")
 
 
 @app.get("/")

@@ -9,7 +9,7 @@ class User(BaseModel):
     lastname: str
     email: str
     stuff: bool
-    description: str
+    description: str | None
     created_at: datetime
 
     model_config = {

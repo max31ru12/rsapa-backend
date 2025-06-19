@@ -20,8 +20,10 @@ async def get_all_users(
         ordering: OrderingParamsDep = None,
 ) -> PaginatedResponse[User]:
     try:
-        users = await service.get_all_users(*params, ordering)
+        users = await service.get_all(*params, ordering)
         data = [User.from_orm(user) for user in users]
         return PaginatedResponse(count=len(users), data=data)
     except InvalidOrderAttributeError:
         raise UserListResponses.INVALID_SORTER_FIELD
+
+
