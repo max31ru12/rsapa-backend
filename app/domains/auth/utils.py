@@ -26,15 +26,11 @@ def create_access_token(data: dict) -> str:
 
 def create_refresh_token(data: dict, remember_me: bool = False) -> str:
     data_to_encode = data.copy()
-
-    print(f"\n\n\n {remember_me=} \n\n\n")
-
     if remember_me:
         lifetime = timedelta(days=settings.REFRESH_TOKEN_REMEMBER_ME_LIFETIME_DAYS)
     else:
         lifetime = timedelta(days=settings.REFRESH_TOKEN_LIFETIME_DAYS)
     expire = datetime.now(tz=timezone.utc) + lifetime
-    print(f"\n\n\n {expire=} \n\n\n")
     data_to_encode.update({"exp": expire})
     refresh_token = jwt.encode(data_to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return refresh_token

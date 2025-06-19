@@ -38,8 +38,6 @@ async def login(
     login_data: LoginForm,
     user_service: UserServiceDep,
 ) -> JWTTokenResponse:
-    print(f"\n\n\n {login_data.model_dump()=} \n\n\n")
-
     email, password, remember = login_data.model_dump().values()
     user = await user_service.get_by_kwargs(email=email)
 
