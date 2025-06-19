@@ -3,6 +3,10 @@ from app.domains.users.repositories import UserRepository
 
 
 class UserUnitOfWork(SQLAlchemyUnitOfWork):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, session=None):
+        super().__init__(session)
         self.user_repository = UserRepository(self._session)
+
+
+def get_user_unit_of_work():
+    return UserUnitOfWork()

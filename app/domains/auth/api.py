@@ -22,7 +22,8 @@ class RegisterResponses(Responses):
 @router.post(
     "/register",
     summary="User registration",
-    responses=RegisterResponses.get_responses()
+    responses=RegisterResponses.get_responses(),
+    status_code=201,
 )
 async def register(
         register_form_data: RegisterFormData,

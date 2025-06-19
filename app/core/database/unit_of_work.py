@@ -1,8 +1,10 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database.setup_db import session_factory
 
 
 class SQLAlchemyUnitOfWork:
-    def __init__(self):
+    def __init__(self, session: AsyncSession = None):
         self._session = session_factory()
 
     async def __aenter__(self):
