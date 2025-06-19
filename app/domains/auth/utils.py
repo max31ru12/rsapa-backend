@@ -1,9 +1,9 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import APIKeyCookie, APIKeyHeader
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from starlette import status
 from starlette.exceptions import HTTPException
@@ -26,11 +26,15 @@ def create_access_token(data: dict) -> str:
 
 def create_refresh_token(data: dict, remember_me: bool = False) -> str:
     data_to_encode = data.copy()
+
+    print(f"\n\n\n {remember_me=} \n\n\n")
+
     if remember_me:
-        lifetime = timedelta(days=settings.REFRESH_TOKEN_LIFETIME_DAYS)
+        lifetime = timedelta(days=settings.REFRESH_TOKEN_REMEMBER_ME_LIFETIME_DAYS)
     else:
-        lifetime = timedelta(days=settings.REFRESH_TOKEN_LIFETIME_DAYS_NOT_REMEMBER)
-    expire = datetime.now() + lifetime
+        lifetime = timedelta(days=settings.REFRESH_TOKEN_LIFETIME_DAYS)
+    expire = datetime.now(tz=timezone.utc) + lifetime
+    print(f"\n\n\n {expire=} \n\n\n")
     data_to_encode.update({"exp": expire})
     refresh_token = jwt.encode(data_to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return refresh_token
@@ -45,7 +49,6 @@ def validate_bearer_token(authorization_header_value: str) -> str:
 
 
 def verify_refresh_token(refresh_token: Annotated[str, Depends(refresh_token_cookie)]) -> dict | None:
-
     if refresh_token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
     try:
@@ -56,8 +59,8 @@ def verify_refresh_token(refresh_token: Annotated[str, Depends(refresh_token_coo
 
 
 async def get_current_user(
-        user_service: UserServiceDep,
-        access_token: str = Depends(access_token_header),
+    user_service: UserServiceDep,
+    access_token: str = Depends(access_token_header),
 ) -> User | None:
     access_token = validate_bearer_token(access_token)
     try:

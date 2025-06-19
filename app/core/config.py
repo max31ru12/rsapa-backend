@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
 
     ACCESS_TOKEN_LIFESPAN_HOURS: int = 1
-    REFRESH_TOKEN_LIFETIME_DAYS: int = 30
-    REFRESH_TOKEN_LIFETIME_DAYS_NOT_REMEMBER: int = 1
+    REFRESH_TOKEN_LIFETIME_DAYS: int = 1
+    REFRESH_TOKEN_REMEMBER_ME_LIFETIME_DAYS: int = 30
 
     class ConfigDict:
         env: Path = BASE_DIR / ".env"
@@ -40,4 +40,6 @@ class Settings(BaseSettings):
 settings = Settings()
 
 DB_URL: str = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
-TEST_DB_URL: str = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/test"
+TEST_DB_URL: str = (
+    f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/test"
+)

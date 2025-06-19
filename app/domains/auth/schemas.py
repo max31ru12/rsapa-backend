@@ -10,7 +10,7 @@ class RegisterFormData(BaseModel):
 
 
 class LoginForm(BaseModel):
-    username: str
+    email: str
     password: str
     remember: bool = False
 

@@ -1,6 +1,7 @@
 from typing import AsyncIterator
 
 import pytest
+from faker import Faker
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -8,10 +9,9 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from faker import Faker
 
-from app.core.database.setup_db import Base
 from app.core.config import TEST_DB_URL
+from app.core.database.setup_db import Base
 from app.domains.users.uow import UserUnitOfWork
 from app.main import app
 
@@ -42,14 +42,16 @@ async def test_session(test_session_factory) -> AsyncSession:
 
 
 @pytest.fixture()
-def override_user_uow(test_session: AsyncSession):
+def user_uow(test_session: AsyncSession):
     return UserUnitOfWork(test_session)
 
 
 @pytest.fixture(autouse=True)
-def override_dependencies(override_user_uow):
+def override_dependencies(user_uow):
+    # Here need to override domain unit_of_work
     from app.domains.users.uow import get_user_unit_of_work
-    app.dependency_overrides[get_user_unit_of_work] = lambda: override_user_uow
+
+    app.dependency_overrides[get_user_unit_of_work] = lambda: user_uow
     yield
     app.dependency_overrides.clear()
 
@@ -67,6 +69,7 @@ async def setup_database(test_engine) -> AsyncIterator[None]:
 @pytest.fixture(scope="function")
 async def client() -> AsyncClient:
     from app.main import app
+
     async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as ac:
         yield ac
 

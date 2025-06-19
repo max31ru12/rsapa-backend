@@ -2,21 +2,17 @@ from fastapi import APIRouter
 from fastapi_exception_responses import Responses
 from starlette.responses import Response
 
-from app.domains.auth.schemas import RegisterFormData, LoginForm, JWTTokenResponse
+from app.domains.auth.schemas import JWTTokenResponse, LoginForm, RegisterFormData
+from app.domains.auth.use_cases import RegisterResponses, register_user
 from app.domains.auth.utils import (
+    CurrentUserDep,
+    RefreshTokenDep,
     create_access_token,
     create_refresh_token,
-    RefreshTokenDep,
-    CurrentUserDep,
 )
 from app.domains.users.services import UserServiceDep
 
 router = APIRouter(tags=["Authentication"])
-
-
-class RegisterResponses(Responses):
-    PASSWORDS_DONT_MATCH = 400, "Passwords don't match"
-    EMAIL_ALREADY_IN_USE = 409, "Provided email is already in use"
 
 
 @router.post(
@@ -26,36 +22,24 @@ class RegisterResponses(Responses):
     status_code=201,
 )
 async def register(
-        register_form_data: RegisterFormData,
-        user_service: UserServiceDep,
+    register_form_data: RegisterFormData,
+    user_service: UserServiceDep,
 ):
-    data = register_form_data.model_dump()
-
-    if (await user_service.get_by_kwargs(email=data["email"])) is not None:
-        raise RegisterResponses.EMAIL_ALREADY_IN_USE
-
-    if data["password"] != data["repeat_password"]:
-        raise RegisterResponses.PASSWORDS_DONT_MATCH
-
-    del data["repeat_password"]
-    new_user = await user_service.create(**data)
-    return new_user
+    return await register_user(register_form_data, user_service)
 
 
 class LoginResponses(Responses):
     WRONG_CREDENTIALS = 401, "Wrong credentials"
 
 
-@router.post(
-    "/login",
-    summary="User login",
-    responses=LoginResponses.get_responses()
-)
+@router.post("/login", summary="User login", responses=LoginResponses.get_responses())
 async def login(
-        response: Response,
-        login_data: LoginForm,
-        user_service: UserServiceDep,
-):
+    response: Response,
+    login_data: LoginForm,
+    user_service: UserServiceDep,
+) -> JWTTokenResponse:
+    print(f"\n\n\n {login_data.model_dump()=} \n\n\n")
+
     email, password, remember = login_data.model_dump().values()
     user = await user_service.get_by_kwargs(email=email)
 
@@ -74,15 +58,19 @@ async def login(
 
 @router.post("/refresh")
 async def refresh_access_token(
-        response: Response,
-        refresh_token: RefreshTokenDep,
-):
+    response: Response,
+    refresh_token: RefreshTokenDep,
+) -> dict[str, str]:
     access_token = create_access_token({"email": refresh_token})
     response.headers["Authorization"] = f"Bearer {access_token}"
     return {"access_token": access_token}
 
 
+@router.post("/logout")
+async def logout(response: Response):
+    pass
+
+
 @router.get("/current-user")
 async def get_current_user(user: CurrentUserDep):
     return user
-

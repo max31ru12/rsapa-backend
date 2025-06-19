@@ -30,6 +30,7 @@ ruff = "^0.12.0"
 pytest = "^8.4.1"
 faker = "^37.4.0"
 httpx = "^0.28.1"
+pre-commit = "^4.2.0"
 
 [tool.ruff]
 line-length = 120  # Устанавливаем максимальную длину строки в 120 символов
@@ -45,6 +46,7 @@ select = [
 ]
 ignore = [
     "E501", # PEP8 length > 79
+    "B904",
 ] # ignored rules
 
 [tool.ruff.format]
@@ -55,5 +57,3 @@ line-ending = "lf"  # Использовать Unix-стиль переносо�
 [tool.ruff.isort]
 known-first-party = ["my_project"]  # Эти настройки сортируют импорты
 combine-as-imports = true
-
-
