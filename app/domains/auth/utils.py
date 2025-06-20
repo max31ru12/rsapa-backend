@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import APIKeyCookie, APIKeyHeader
+from fastapi.security import APIKeyCookie, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from starlette import status
@@ -14,7 +14,7 @@ from app.domains.users.services import UserServiceDep
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 refresh_token_cookie = APIKeyCookie(name="refresh_token", auto_error=False)
-access_token_header = APIKeyHeader(name="Authorization", auto_error=False)
+access_token_header = HTTPBearer(auto_error=False)
 
 
 def create_access_token(data: dict) -> str:
