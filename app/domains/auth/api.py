@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi_exception_responses import Responses
 from starlette.responses import Response
 
-from app.domains.auth.schemas import JWTTokenResponse, LoginForm, RegisterFormData
+from app.domains.auth.schemas import AccessToken, JWTTokenResponse, LoginForm, RegisterFormData
 from app.domains.auth.use_cases import RegisterResponses, register_user
 from app.domains.auth.utils import (
     CurrentUserDep,
@@ -58,15 +58,16 @@ async def login(
 async def refresh_access_token(
     response: Response,
     refresh_token: RefreshTokenDep,
-) -> dict[str, str]:
+) -> AccessToken:
     access_token = create_access_token({"email": refresh_token})
     response.headers["Authorization"] = f"Bearer {access_token}"
-    return {"access_token": access_token}
+    return AccessToken(access_token=access_token)
 
 
 @router.post("/logout")
-async def logout(response: Response):
-    pass
+async def logout(response: Response) -> str:
+    response.delete_cookie("refresh_token")
+    return "successfully logged out"
 
 
 @router.get("/current-user")

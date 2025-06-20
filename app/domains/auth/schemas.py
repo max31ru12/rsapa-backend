@@ -15,6 +15,10 @@ class LoginForm(BaseModel):
     remember: bool = False
 
 
-class JWTTokenResponse(BaseModel):
+class AccessToken(BaseModel):
     access_token: str
-    refresh_token: str
+    type: str = "Bearer"
+
+
+class JWTTokenResponse(AccessToken):
+    refresh_token: str | None
