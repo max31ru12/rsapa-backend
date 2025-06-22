@@ -29,6 +29,8 @@ class SubscriptionType(Base):
     duration: Mapped[int] = mapped_column(nullable=False, default=30)
     description: Mapped[str] = mapped_column(nullable=True)
 
+    subscriptions: Mapped["UserSubscription"] = relationship(back_populates="subscription_type")
+
 
 class UserSubscription(Base):
     __tablename__ = "user_subscriptions"
@@ -39,7 +41,7 @@ class UserSubscription(Base):
     end_date: Mapped[date] = mapped_column()
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="users")
+    user: Mapped["User"] = relationship(back_populates="subscriptions")
 
     subscription_type_id: Mapped[id] = mapped_column(ForeignKey("subscription_types.id"))
-    subscription_type: Mapped[SubscriptionType] = relationship(back_populates="user_subscriptions")
+    subscription_type: Mapped[SubscriptionType] = relationship(back_populates="subscriptions")
