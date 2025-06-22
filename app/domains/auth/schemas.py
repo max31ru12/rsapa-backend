@@ -7,6 +7,9 @@ class RegisterFormData(BaseModel):
     repeat_password: str
     firstname: str
     lastname: str
+    institution: str
+    role: str
+    subscription_id: int
 
 
 class LoginForm(BaseModel):

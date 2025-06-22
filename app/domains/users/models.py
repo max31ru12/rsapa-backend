@@ -26,6 +26,8 @@ class User(Base):
         DateTime(timezone=True), default=func.now(), server_default=func.now(), nullable=False
     )
     pending: Mapped[bool] = mapped_column(default=False, nullable=True, server_default=text("true"))
+    institution: Mapped[str] = mapped_column()
+    role: Mapped[str] = mapped_column()
 
     subscriptions: Mapped["UserSubscription"] = relationship(back_populates="user")
 
