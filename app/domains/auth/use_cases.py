@@ -23,7 +23,8 @@ async def register_user(register_form_data, user_service) -> User:
         raise RegisterResponses.PASSWORDS_DONT_MATCH
 
     del data["repeat_password"]
-    return await user_service.create(**data)
+    user = await user_service.create(**data)
+    return user
 
 
 async def get_subscriptions(session: AsyncSession) -> Sequence[SubscriptionType]:

@@ -7,7 +7,6 @@ from app.domains.users.uow import UserUnitOfWork, get_user_unit_of_work
 
 
 class UserService:
-
     def __init__(self, uow):
         self.uow = uow
 
@@ -24,9 +23,7 @@ class UserService:
             return await self.uow.user_repository.get_first_by_kwargs(**kwargs)
 
 
-def get_user_service(
-        uow: UserUnitOfWork = Depends(get_user_unit_of_work)
-) -> UserService:
+def get_user_service(uow: Annotated[UserUnitOfWork, Depends(get_user_unit_of_work)]) -> UserService:
     return UserService(uow)
 
 

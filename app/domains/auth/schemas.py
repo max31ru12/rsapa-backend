@@ -9,7 +9,7 @@ class RegisterFormData(BaseModel):
     lastname: str
     institution: str
     role: str
-    subscription_id: int
+    subscription_type_id: int
 
 
 class LoginForm(BaseModel):

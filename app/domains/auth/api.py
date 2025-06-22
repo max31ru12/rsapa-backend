@@ -7,7 +7,8 @@ from starlette.responses import Response
 
 from app.core.database.setup_db import session_getter
 from app.domains.auth.schemas import AccessToken, JWTTokenResponse, LoginForm, RegisterFormData
-from app.domains.auth.use_cases import RegisterResponses, get_subscriptions, register_user
+from app.domains.auth.services import AuthServiceDep
+from app.domains.auth.use_cases import RegisterResponses, get_subscriptions
 from app.domains.auth.utils import (
     CurrentUserDep,
     RefreshTokenDep,
@@ -27,9 +28,9 @@ router = APIRouter(tags=["Authentication"])
 )
 async def register(
     register_form_data: RegisterFormData,
-    user_service: UserServiceDep,
+    auth_service: AuthServiceDep,
 ):
-    return await register_user(register_form_data, user_service)
+    return await auth_service.register_user(register_form_data)
 
 
 class LoginResponses(Responses):
