@@ -3,12 +3,13 @@ from typing import TYPE_CHECKING
 
 from passlib.hash import bcrypt
 from sqlalchemy import Boolean, DateTime, String, func, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.setup_db import Base
+from app.domains.auth.models import UserSubscription
 
 if TYPE_CHECKING:
-    pass
+    from app.domains.auth.models import UserSubscription
 
 
 class User(Base):
@@ -25,6 +26,8 @@ class User(Base):
         DateTime(timezone=True), default=func.now(), server_default=func.now(), nullable=False
     )
     pending: Mapped[bool] = mapped_column(default=False, nullable=True, server_default=text("true"))
+
+    subscriptions: Mapped["UserSubscription"] = relationship(back_populates="user")
 
     _password: Mapped[str] = mapped_column()
 

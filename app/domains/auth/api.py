@@ -70,6 +70,11 @@ async def logout(response: Response) -> str:
     return "successfully logged out"
 
 
+@router.get("/subscriptions")
+async def get_all_subscriptions():
+    return None
+
+
 @router.get("/current-user")
 async def get_current_user(user: CurrentUserDep):
     return user
