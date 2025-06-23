@@ -6,7 +6,7 @@ from faker import Faker
 from jose import jwt
 
 from app.core.config import settings
-from app.domains.users.uow import UserUnitOfWork
+from app.domains.users.database import UserUnitOfWork
 from tests.auth.utils import decode_jwt
 
 pytestmark = pytest.mark.anyio

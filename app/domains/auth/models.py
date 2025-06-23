@@ -23,7 +23,7 @@ class SubscriptionType(Base):
 
     name: Mapped[str] = mapped_column(nullable=False)
     type: Mapped[SubscriptionTypeEnum] = mapped_column(
-        SQLAEnum(SubscriptionTypeEnum, name="SubscriptionType"), nullable=False
+        SQLAEnum(SubscriptionTypeEnum, name="subscription_type_enum"), nullable=False
     )
     price_usd: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     duration: Mapped[int] = mapped_column(nullable=False, default=30)

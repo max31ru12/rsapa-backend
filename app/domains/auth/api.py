@@ -15,6 +15,7 @@ from app.domains.auth.utils import (
     create_access_token,
     create_refresh_token,
 )
+from app.domains.users.schemas import User
 from app.domains.users.services import UserServiceDep
 
 router = APIRouter(tags=["Authentication"])
@@ -23,21 +24,22 @@ router = APIRouter(tags=["Authentication"])
 @router.post(
     "/register",
     summary="User registration",
-    responses=RegisterResponses.get_responses(),
+    responses=RegisterResponses.responses,
     status_code=201,
 )
 async def register(
     register_form_data: RegisterFormData,
     auth_service: AuthServiceDep,
-):
-    return await auth_service.register_user(register_form_data)
+) -> User:
+    user = await auth_service.register_user(register_form_data)
+    return User.from_orm(user)
 
 
 class LoginResponses(Responses):
     WRONG_CREDENTIALS = 401, "Wrong credentials"
 
 
-@router.post("/login", summary="User login", responses=LoginResponses.get_responses())
+@router.post("/login", summary="User login", responses=LoginResponses.responses)
 async def login(
     response: Response,
     login_data: LoginForm,

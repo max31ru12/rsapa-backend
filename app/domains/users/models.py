@@ -25,7 +25,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=func.now(), server_default=func.now(), nullable=False
     )
-    pending: Mapped[bool] = mapped_column(default=False, nullable=True, server_default=text("true"))
+    pending: Mapped[bool] = mapped_column(default=True, nullable=True, server_default=text("true"))
     institution: Mapped[str] = mapped_column()
     role: Mapped[str] = mapped_column()
 

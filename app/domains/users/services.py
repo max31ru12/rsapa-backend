@@ -2,8 +2,8 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from app.domains.users.database import UserUnitOfWork, get_user_unit_of_work
 from app.domains.users.models import User
-from app.domains.users.uow import UserUnitOfWork, get_user_unit_of_work
 
 
 class UserService:
