@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import ORJSONResponse
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 
 from app.core.config import DEV_MODE
 from app.domains.auth.api import router as auth_router
@@ -20,6 +22,15 @@ app = FastAPI(
     lifespan=lifespan,
     default_response_class=ORJSONResponse,
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    custom_errors = [
+        {"field": ".".join(str(loc) for loc in error["loc"][1:]), "message": error["msg"]} for error in exc.errors()
+    ]
+
+    return ORJSONResponse(status_code=422, content={"detail": {"errors": custom_errors}})
 
 
 app.include_router(users_router, prefix="/api/users")
