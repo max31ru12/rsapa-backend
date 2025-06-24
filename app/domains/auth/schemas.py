@@ -1,15 +1,21 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class RegisterFormData(BaseModel):
-    email: str
-    password: str
-    repeat_password: str
-    firstname: str
-    lastname: str
-    institution: str
-    role: str
+    email: EmailStr = Field(min_length=6)
+    password: str = Field(min_length=4)
+    repeat_password: str = Field(min_length=4)
+    firstname: str = Field(min_length=2)
+    lastname: str = Field(min_length=2)
+    institution: str = Field(min_length=2)
+    role: str = Field(min_length=2)
     subscription_type_id: int
+
+    @model_validator(mode="after")
+    def check_passwords_match(self):
+        if self.password != self.repeat_password:
+            raise ValueError("Passwords do not match")
+        return self
 
 
 class LoginForm(BaseModel):

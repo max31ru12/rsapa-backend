@@ -11,6 +11,8 @@ class User(BaseModel):
     stuff: bool
     description: str | None
     created_at: datetime
+    institution: str
+    role: str
 
     model_config = {
         "from_attributes": True,
