@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     DB_NAME: str = "test"
 
     SECRET_KEY: str
-    ALGORITHM: str = "HS256"
+    ALGORITHM: str
 
     ACCESS_TOKEN_LIFESPAN_HOURS: int = 1
     REFRESH_TOKEN_LIFETIME_DAYS: int = 1

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import APIKeyCookie, HTTPBearer
+from fastapi.security import APIKeyCookie, HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from starlette import status
@@ -36,14 +36,6 @@ def create_refresh_token(data: dict, remember_me: bool = False) -> str:
     return refresh_token
 
 
-def validate_bearer_token(authorization_header_value: str) -> str:
-    if "Bearer" in authorization_header_value:
-        _, access_token = authorization_header_value.split(" ")
-        return access_token
-    else:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-
 def verify_refresh_token(refresh_token: Annotated[str, Depends(refresh_token_cookie)]) -> dict | None:
     if refresh_token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
@@ -56,11 +48,10 @@ def verify_refresh_token(refresh_token: Annotated[str, Depends(refresh_token_coo
 
 async def get_current_user(
     user_service: UserServiceDep,
-    access_token: str = Depends(access_token_header),
+    access_token: HTTPAuthorizationCredentials = Depends(access_token_header),
 ) -> User | None:
-    access_token = validate_bearer_token(access_token)
     try:
-        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(access_token.credentials, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 

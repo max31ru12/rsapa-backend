@@ -64,9 +64,9 @@ async def login(
 @router.post("/refresh")
 async def refresh_access_token(
     response: Response,
-    refresh_token: RefreshTokenDep,
+    refresh_token_payload: RefreshTokenDep,
 ) -> AccessToken:
-    access_token = create_access_token({"email": refresh_token})
+    access_token = create_access_token({"email": refresh_token_payload["email"]})
     response.headers["Authorization"] = f"Bearer {access_token}"
     return AccessToken(access_token=access_token)
 
@@ -84,5 +84,5 @@ async def get_all_subscriptions(session: Annotated[AsyncSession, Depends(session
 
 
 @router.get("/current-user")
-async def get_current_user(user: CurrentUserDep):
+async def get_current_user(user: CurrentUserDep) -> User:
     return user
