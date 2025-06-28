@@ -10,7 +10,6 @@ from app.domains.auth.schemas import AccessToken, JWTTokenResponse, LoginForm, R
 from app.domains.auth.services import AuthServiceDep
 from app.domains.auth.use_cases import RegisterResponses, get_subscriptions
 from app.domains.auth.utils import (
-    CurrentUserDep,
     RefreshTokenDep,
     create_access_token,
     create_refresh_token,
@@ -81,8 +80,3 @@ async def logout(response: Response) -> str:
 async def get_all_subscriptions(session: Annotated[AsyncSession, Depends(session_getter)]):
     subscriptions = await get_subscriptions(session)
     return subscriptions
-
-
-@router.get("/current-user")
-async def get_current_user(user: CurrentUserDep) -> User:
-    return user

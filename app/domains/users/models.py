@@ -18,7 +18,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, nullable=False)
     firstname: Mapped[str] = mapped_column(nullable=False)
     lastname: Mapped[str] = mapped_column(nullable=False)
-    email: Mapped[str] = mapped_column(unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(unique=True, nullable=False, index=True)
     stuff: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
     description: Mapped[str] = mapped_column(String(512), nullable=True)
 
@@ -32,6 +32,7 @@ class User(Base):
     subscriptions: Mapped["UserSubscription"] = relationship(back_populates="user")
 
     _password: Mapped[str] = mapped_column()
+    avatar_path: Mapped[str] = mapped_column(nullable=True, unique=True)
 
     @property
     def password(self) -> str:

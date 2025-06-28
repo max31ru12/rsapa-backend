@@ -1,3 +1,4 @@
+import os.path
 from os import getenv
 from pathlib import Path
 
@@ -8,7 +9,7 @@ load_dotenv()
 
 DEV_MODE: bool = getenv("DEV_MODE", "true").strip().lower() in {"true", "1", "yes"}
 
-BASE_DIR = Path(__file__).parent.parent
+BASE_DIR = Path(__file__).parent.parent.parent
 
 CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -32,6 +33,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_LIFESPAN_HOURS: int = 1
     REFRESH_TOKEN_LIFETIME_DAYS: int = 1
     REFRESH_TOKEN_REMEMBER_ME_LIFETIME_DAYS: int = 30
+
+    MEDIA_STORAGE_PATH: Path = BASE_DIR / "media"
 
     class ConfigDict:
         env: Path = BASE_DIR / ".env"
