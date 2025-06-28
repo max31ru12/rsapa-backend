@@ -9,6 +9,9 @@
 docker compose -f ./local.yml --build -d
 ```
 
+For deployment the `HOST` environment variable should match the database service name ызусшашув шт `local.yml`.
+For local development set `HOST` to `localhost`.
+
 
 ## Naming
 
@@ -28,3 +31,26 @@ We use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) to
 - fix: (msg) - for fixing bugs
 - BREAKING CHANGE: (msg) - for
 - ci: (msg)
+
+
+## Main services
+
+
+### App
+
+Root URL of api must start with `api/` prefix. For example:
+
+```
+http://localhost:8000/api/users/1
+```
+
+### Media files storage
+
+the storage is accessible via `MEDIA_PATH_NAME/file_name`. For example:
+
+```
+http://localhost:8000/api/media/photo.jpeg
+```
+
+
+### CI/CD
