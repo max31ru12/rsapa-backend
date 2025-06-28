@@ -64,11 +64,11 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
         self.session.add(instance)
         return instance
 
-    async def update(self, row_id: int, update_data: dict[str | Any]) -> Result[int]:
+    async def update(self, object_id: int, update_data: dict[str | Any]) -> Result[int]:
         return (
             (
                 await self.session.execute(
-                    update(self.model).where(self.model.id == row_id).values(**update_data).returning(self.model)
+                    update(self.model).where(self.model.id == object_id).values(**update_data).returning(self.model)
                 )
             )
             .scalars()

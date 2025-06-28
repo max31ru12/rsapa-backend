@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import ORJSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
+from starlette.staticfiles import StaticFiles
 
 from app.core.config import DEV_MODE
 from app.domains.auth.api import router as auth_router
@@ -22,6 +23,9 @@ app = FastAPI(
     lifespan=lifespan,
     default_response_class=ORJSONResponse,
 )
+
+
+app.mount("/api/media", StaticFiles(directory="media"), name="media")
 
 
 @app.exception_handler(RequestValidationError)

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends
@@ -21,6 +22,13 @@ class UserService:
     async def get_by_kwargs(self, **kwargs) -> User:
         async with self.uow:
             return await self.uow.user_repository.get_first_by_kwargs(**kwargs)
+
+    async def set_user_avatar(self, user_id: int, avatar_path: Path):
+        async with self.uow:
+            user = await self.uow.user_repository.get_first_by_kwargs(id=user_id)
+            if user is None:
+                return ValueError("There is no such user with provided id")
+            await self.uow.user_repository.update(user_id, {"avatar_path": avatar_path})
 
 
 def get_user_service(uow: Annotated[UserUnitOfWork, Depends(get_user_unit_of_work)]) -> UserService:

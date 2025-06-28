@@ -13,6 +13,7 @@ class User(BaseModel):
     created_at: datetime
     institution: str
     role: str
+    avatar_path: str | None
 
     model_config = {
         "from_attributes": True,
