@@ -14,7 +14,7 @@ from app.domains.auth.utils import (
     create_access_token,
     create_refresh_token,
 )
-from app.domains.users.schemas import User
+from app.domains.users.models import UserSchema
 from app.domains.users.services import UserServiceDep
 
 router = APIRouter(tags=["Authentication"])
@@ -29,9 +29,9 @@ router = APIRouter(tags=["Authentication"])
 async def register(
     register_form_data: RegisterFormData,
     auth_service: AuthServiceDep,
-) -> User:
+) -> UserSchema:
     user = await auth_service.register_user(register_form_data)
-    return User.from_orm(user)
+    return UserSchema.from_orm(user)
 
 
 class LoginResponses(Responses):

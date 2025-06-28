@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from passlib.hash import bcrypt
+from pydantic import BaseModel
 from sqlalchemy import Boolean, DateTime, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -44,3 +45,28 @@ class User(Base):
 
     def verify_password(self, plain_password: str) -> bool:
         return bcrypt.verify(plain_password, self._password)
+
+
+class UserSchema(BaseModel):
+    id: int
+    firstname: str
+    lastname: str
+    email: str
+    stuff: bool
+    description: str | None
+    created_at: datetime
+    institution: str
+    role: str
+    avatar_path: str | None
+
+    model_config = {
+        "from_attributes": True,
+    }
+
+
+class UpdateUserSchema(BaseModel):
+    firstname: str | None = None
+    lastname: str | None = None
+    description: str | None = None
+    institution: str | None = None
+    role: str | None = None

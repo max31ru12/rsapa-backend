@@ -1,4 +1,3 @@
-import os.path
 from os import getenv
 from pathlib import Path
 
@@ -34,6 +33,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_LIFETIME_DAYS: int = 1
     REFRESH_TOKEN_REMEMBER_ME_LIFETIME_DAYS: int = 30
 
+    MEDIA_DIR_NAME: str = "media"
+    MEDIA_API_PATH: str = "/api/media"
     MEDIA_STORAGE_PATH: Path = BASE_DIR / "media"
 
     class ConfigDict:

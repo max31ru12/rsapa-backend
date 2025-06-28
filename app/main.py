@@ -7,7 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 
-from app.core.config import DEV_MODE
+from app.core.config import DEV_MODE, settings
 from app.domains.auth.api import router as auth_router
 from app.domains.users.api import router as users_router
 
@@ -25,7 +25,7 @@ app = FastAPI(
 )
 
 
-app.mount("/api/media", StaticFiles(directory="media"), name="media")
+app.mount(settings.MEDIA_API_PATH, StaticFiles(directory=settings.MEDIA_DIR_NAME), name=settings.MEDIA_DIR_NAME)
 
 
 @app.exception_handler(RequestValidationError)
