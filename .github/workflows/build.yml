@@ -14,14 +14,21 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.13'
+
       - name: Install dependencies
         run: |
           sudo curl -sSL https://install.python-poetry.org | python3 -
           export PATH="$HOME/.local/bin:$PATH"
           poetry install --with dev
+
+      - name: Set environment variables
+        run: |
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+
       - name: Lint with ruff
         run: |
            poetry run ruff check .
+
       - name: Install Docker
         run: |
            sudo apt-get update
@@ -39,6 +46,7 @@ jobs:
            sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
            sudo docker run hello-world
+
       - name: Run postgres
         run: |
           docker pull postgres:alpine
@@ -67,16 +75,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set environment variables
+        run: |
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+
       - name: Set up docker
         run: |
-          # Add Docker's official GPG key:
           sudo apt-get update
           sudo apt-get install ca-certificates curl
           sudo install -m 0755 -d /etc/apt/keyrings
           sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
           sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-          # Add the repository to Apt sources:
           echo \
             "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
             $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
