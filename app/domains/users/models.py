@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+import phonenumbers
 from passlib.hash import bcrypt
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import Boolean, DateTime, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,6 +21,7 @@ class User(Base):
     firstname: Mapped[str] = mapped_column(nullable=False)
     lastname: Mapped[str] = mapped_column(nullable=False)
     email: Mapped[str] = mapped_column(unique=True, nullable=False, index=True)
+    phone_number: Mapped[str] = mapped_column(String(20), nullable=True, unique=True)
     stuff: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
     description: Mapped[str] = mapped_column(String(512), nullable=True)
 
@@ -58,6 +60,7 @@ class UserSchema(BaseModel):
     institution: str
     role: str
     avatar_path: str | None
+    phone_number: str
 
     model_config = {
         "from_attributes": True,
@@ -70,3 +73,14 @@ class UpdateUserSchema(BaseModel):
     description: str | None = None
     institution: str | None = None
     role: str | None = None
+    phone_number: str | None = None
+
+    @field_validator("phone_number")
+    def validate_phone_number(cls, value):
+        try:
+            parsed = phonenumbers.parse(value, None)
+            if not phonenumbers.is_valid_number(parsed):
+                raise ValueError("Invalid phone number format")
+        except phonenumbers.NumberParseException:
+            raise ValueError("Can't parse phone number")
+        return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
