@@ -8,6 +8,7 @@ from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 
 from app.core.config import DEV_MODE, settings
+from app.core.utils.open_api import get_custom_open_api
 from app.domains.auth.api import router as auth_router
 from app.domains.users.api import router as users_router
 
@@ -28,13 +29,19 @@ app = FastAPI(
 app.mount(settings.MEDIA_API_PATH, StaticFiles(directory=settings.MEDIA_DIR_NAME), name=settings.MEDIA_DIR_NAME)
 
 
+# --- Обработчик ошибок 422 ---
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     custom_errors = [
         {"field": ".".join(str(loc) for loc in error["loc"][1:]), "message": error["msg"]} for error in exc.errors()
     ]
+    return ORJSONResponse(
+        status_code=422,
+        content={"detail": {"errors": custom_errors}},
+    )
 
-    return ORJSONResponse(status_code=422, content={"detail": {"errors": custom_errors}})
+
+app.openapi = get_custom_open_api(app)
 
 
 app.include_router(users_router, prefix="/api/users")
