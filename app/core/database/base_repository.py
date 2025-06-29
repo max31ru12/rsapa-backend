@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Sequence, TypeVar
 
-from sqlalchemy import delete, select, update, text
+from sqlalchemy import delete, select, text, update
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 

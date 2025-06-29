@@ -1,11 +1,11 @@
 from typing import Annotated
 
-from fastapi.params import Query, Depends
+from fastapi.params import Depends, Query
 
 
 def get_pagination_params(
-        page: int = Query(1, ge=1, description="Page number"),
-        page_size: int = Query(25, ge=1, le=100, description="Page size"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(25, ge=1, le=100, description="Page size"),
 ) -> [int, int]:
     return page_size, page_size * (page - 1)
 
