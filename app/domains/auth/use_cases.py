@@ -16,7 +16,7 @@ class RegisterResponses(Responses):
 async def register_user(register_form_data, user_service) -> User:
     data = register_form_data.model_dump()
 
-    if (await user_service.get_by_kwargs(email=data["email"])) is not None:
+    if (await user_service.get_user_by_kwargs(email=data["email"])) is not None:
         raise RegisterResponses.EMAIL_ALREADY_IN_USE
 
     if data["password"] != data["repeat_password"]:

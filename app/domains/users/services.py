@@ -19,7 +19,7 @@ class UserService:
         async with self.uow:
             return await self.uow.user_repository.create(**kwargs)
 
-    async def get_by_kwargs(self, **kwargs) -> User:
+    async def get_user_by_kwargs(self, **kwargs) -> User:
         async with self.uow:
             return await self.uow.user_repository.get_first_by_kwargs(**kwargs)
 

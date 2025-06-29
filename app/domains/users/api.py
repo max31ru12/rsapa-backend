@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, Path, UploadFile
 from fastapi_exception_responses import Responses
 
 from app.core.database.base_repository import InvalidOrderAttributeError
@@ -9,7 +9,7 @@ from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.auth.utils import CurrentUserDep
 from app.domains.users.models import UpdateUserSchema, UserSchema
 from app.domains.users.services import UserServiceDep
-from app.utils import write_file
+from app.domains.users.utils import write_file
 
 router = APIRouter(tags=["users"])
 
@@ -37,16 +37,40 @@ async def get_all_users(
         raise UserListResponses.INVALID_SORTER_FIELD
 
 
-@router.put(
-    "/{user_id}",
-    summary="Update user data",
-)
+class GetUserResponses(Responses):
+    USER_NOT_FOUND = 404, "User with the provided email was not found"
+
+
+@router.get("/{user_id}", summary="Get user by id", responses=GetUserResponses.responses)
+async def get_user(
+    user_id: Annotated[int, Path(...)],
+    service: UserServiceDep,
+) -> UserSchema:
+    user = await service.get_user_by_kwargs(id=user_id)
+    if user is None:
+        raise GetUserResponses.USER_NOT_FOUND
+    return UserSchema.from_orm(user)
+
+
+class UpdateUserDataResponses(Responses):
+    USER_NOT_FOUND = 404, "User with the provided email was not found"
+    PERMISSION_DENIED = 403, "You do not have permission to update this user"
+
+
+@router.put("/{user_id}", summary="Update user data", responses=UpdateUserDataResponses.responses)
 async def update_user_data(
     service: UserServiceDep,
-    user: CurrentUserDep,
+    current_user: CurrentUserDep,
+    user_id: Annotated[int, Path(...)],
     update_data: UpdateUserSchema | None = None,
 ) -> UserSchema:
-    user = await service.update_user(user_id=user.id, update_data=update_data.model_dump(exclude_none=True))
+    if not (current_user.id == user_id or current_user.stuff):
+        raise UpdateUserDataResponses.PERMISSION_DENIED
+
+    try:
+        user = await service.update_user(user_id=user_id, update_data=update_data.model_dump(exclude_none=True))
+    except ValueError:
+        raise UpdateUserDataResponses.USER_NOT_FOUND
     return UserSchema.from_orm(user)
 
 

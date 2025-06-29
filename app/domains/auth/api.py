@@ -45,7 +45,7 @@ async def login(
     user_service: UserServiceDep,
 ) -> JWTTokenResponse:
     email, password, remember = login_data.model_dump().values()
-    user = await user_service.get_by_kwargs(email=email)
+    user = await user_service.get_user_by_kwargs(email=email)
 
     if user is None or not user.verify_password(password):
         raise LoginResponses.WRONG_CREDENTIALS

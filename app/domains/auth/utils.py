@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import APIKeyCookie, HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from starlette import status
@@ -48,8 +48,10 @@ def verify_refresh_token(refresh_token: Annotated[str, Depends(refresh_token_coo
 
 async def get_current_user(
     user_service: UserServiceDep,
-    access_token: HTTPAuthorizationCredentials = Depends(access_token_header),
+    access_token: Annotated[HTTPAuthorizationCredentials, Depends(access_token_header)],
 ) -> User | None:
+    if access_token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
     try:
         payload = jwt.decode(access_token.credentials, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
@@ -60,7 +62,7 @@ async def get_current_user(
     if not email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    user = await user_service.get_by_kwargs(email=email)
+    user = await user_service.get_user_by_kwargs(email=email)
 
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
