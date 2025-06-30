@@ -1,8 +1,10 @@
+import os
 from typing import Annotated
 
 from fastapi import APIRouter, File, Path, UploadFile
 from fastapi_exception_responses import Responses
 
+from app.core.config import BASE_DIR
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
@@ -85,6 +87,7 @@ class SetAvatarResponses(Responses):
 async def upload_user_avatar(
     service: UserServiceDep,
     user: CurrentUserDep,
+    user_id: Annotated[int, Path()],
     file: Annotated[UploadFile, File(...)],
 ):
     if not file.content_type.startswith("image/"):
@@ -93,8 +96,9 @@ async def upload_user_avatar(
     relative_filepath = await write_file(file)
 
     try:
-        await service.set_user_avatar(user_id=user.id, avatar_path=relative_filepath)
+        await service.set_user_avatar(user_id=user_id, avatar_path=relative_filepath)
     except ValueError:
+        os.remove(BASE_DIR / relative_filepath)
         raise SetAvatarResponses.USER_NOT_FOUND
 
     return {"path": relative_filepath}
