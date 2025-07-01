@@ -17,7 +17,7 @@ from app.domains.auth.utils import (
 from app.domains.users.models import UserSchema
 from app.domains.users.services import UserServiceDep
 
-router = APIRouter(tags=["Authentication"])
+router = APIRouter(tags=["Authentication"], prefix="/auth")
 
 
 @router.post(

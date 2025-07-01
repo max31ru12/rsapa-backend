@@ -24,6 +24,23 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
+def get_email_by_access_token(access_token: HTTPAuthorizationCredentials):
+    """Parses access token and returns decoded email from it"""
+    if access_token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
+    try:
+        payload = jwt.decode(access_token.credentials, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    email = payload.get("email")
+
+    if not email:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    return email
+
+
 def create_refresh_token(data: dict, remember_me: bool = False) -> str:
     data_to_encode = data.copy()
     if remember_me:
@@ -50,18 +67,7 @@ async def get_current_user(
     user_service: UserServiceDep,
     access_token: Annotated[HTTPAuthorizationCredentials, Depends(access_token_header)],
 ) -> User | None:
-    if access_token is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
-    try:
-        payload = jwt.decode(access_token.credentials, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-    email = payload.get("email")
-
-    if not email:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
+    email = get_email_by_access_token(access_token)
     user = await user_service.get_user_by_kwargs(email=email)
 
     if user is None:
@@ -70,5 +76,16 @@ async def get_current_user(
     return user
 
 
+async def get_admin_user(
+    user_service: UserServiceDep,
+    access_token: Annotated[HTTPAuthorizationCredentials, Depends(access_token_header)],
+) -> User | None:
+    user = await get_current_user(user_service, access_token)
+    if not user.stuff:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    return user
+
+
 RefreshTokenDep = Annotated[str, Depends(verify_refresh_token)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+AdminUserDep = Annotated[User, Depends(get_admin_user)]

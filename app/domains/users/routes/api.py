@@ -13,7 +13,7 @@ from app.domains.users.models import UpdateUserSchema, UserSchema
 from app.domains.users.services import UserServiceDep
 from app.domains.users.utils import write_file
 
-router = APIRouter(tags=["users"])
+router = APIRouter(tags=["users"], prefix="/users")
 
 
 @router.get("/current-user")

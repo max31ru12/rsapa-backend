@@ -10,7 +10,8 @@ from starlette.staticfiles import StaticFiles
 from app.core.config import DEV_MODE, settings
 from app.core.utils.open_api import get_custom_open_api
 from app.domains.auth.api import router as auth_router
-from app.domains.users.api import router as users_router
+from app.domains.users.routes.admin_api import router as users_admin_router
+from app.domains.users.routes.api import router as users_router
 
 
 @asynccontextmanager
@@ -44,8 +45,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.openapi = get_custom_open_api(app)
 
 
-app.include_router(users_router, prefix="/api/users")
-app.include_router(auth_router, prefix="/api/auth")
+app.include_router(users_router, prefix="/api")
+app.include_router(users_admin_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 
 origins = [

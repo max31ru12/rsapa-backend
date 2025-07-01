@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import phonenumbers
 from passlib.hash import bcrypt
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
+from pydantic_core import PydanticCustomError
 from sqlalchemy import Boolean, DateTime, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -60,7 +61,8 @@ class UserSchema(BaseModel):
     institution: str
     role: str
     avatar_path: str | None
-    phone_number: str
+    phone_number: str | None
+    pending: bool
 
     model_config = {
         "from_attributes": True,
@@ -68,19 +70,21 @@ class UserSchema(BaseModel):
 
 
 class UpdateUserSchema(BaseModel):
-    firstname: str | None = None
-    lastname: str | None = None
+    firstname: Annotated[str | None, Field(min_length=2)] = None
+    lastname: Annotated[str | None, Field(min_length=2)] = None
     description: str | None = None
-    institution: str | None = None
+    institution: Annotated[str | None, Field(min_length=2)] = None
     role: str | None = None
-    phone_number: str | None = None
+    phone_number: Annotated[str | None, Field()] = None
 
     @field_validator("phone_number")
     def validate_phone_number(cls, value):
+        if value is None or value.strip() == "":
+            return None
         try:
             parsed = phonenumbers.parse(value, None)
             if not phonenumbers.is_valid_number(parsed):
-                raise ValueError("Invalid phone number format")
+                raise PydanticCustomError("phone_number.invalid", "Invalid phone number format")
         except phonenumbers.NumberParseException:
-            raise ValueError("Can't parse phone number")
+            raise PydanticCustomError("phone_number.unparsable", "Invalid phone number format")
         return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)

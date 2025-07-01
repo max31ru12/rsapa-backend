@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends
 
@@ -13,9 +13,11 @@ class UserService:
     def __init__(self, uow):
         self.uow = uow
 
-    async def get_all(self, limit: int = None, offset: int = None, order_by: str = None) -> list[User]:
+    async def get_all(
+        self, limit: int = None, offset: int = None, order_by: str = None, filters: dict[str, Any] = None
+    ) -> list[User]:
         async with self.uow:
-            return await self.uow.user_repository.list(limit, offset, order_by)
+            return await self.uow.user_repository.list(limit, offset, order_by, filters)
 
     async def create(self, **kwargs):
         async with self.uow:
@@ -41,6 +43,8 @@ class UserService:
                 raise ValueError("There is no such user with provided id")
             await self.uow.user_repository.update(user_id, update_data)
         return user
+
+    # async def
 
 
 def get_user_service(uow: Annotated[UserUnitOfWork, Depends(get_user_unit_of_work)]) -> UserService:

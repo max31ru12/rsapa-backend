@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Sequence, TypeVar
 
-from sqlalchemy import delete, select, text, update
+from sqlalchemy import asc, delete, desc, select, update
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.utils.filters import build_conditions
 
 
 class BaseRepository(ABC):
@@ -41,14 +43,22 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def list(self, limit: int = None, offset: int = None, order_by: str = None) -> Sequence[T]:
+    async def list(
+        self, limit: int = None, offset: int = None, order_by: str = None, filters: dict[str, Any] = None
+    ) -> Sequence[T]:
         stmt = select(self.model)
+
+        if filters:
+            stmt = stmt.filter(*build_conditions(self.model, filters))
 
         if order_by is not None:
             for param in order_by.split(","):
+                desc_order = param.startswith("-")
+                field_name = param.strip("-")
+
                 if not hasattr(self.model, param.strip("-")):
                     raise InvalidOrderAttributeError(f"Model <{self.model.__name__}> don't have attribute <{param}>")
-            stmt = stmt.order_by(text(order_by))
+                stmt = stmt.order_by(desc(field_name) if desc_order else asc(field_name))
 
         if limit is not None and offset is not None:
             stmt = stmt.offset(offset).limit(limit)
