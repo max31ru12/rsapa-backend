@@ -19,6 +19,10 @@ class UserService:
         async with self.uow:
             return await self.uow.user_repository.list(limit, offset, order_by, filters)
 
+    async def get_all_users_count(self) -> int:
+        async with self.uow:
+            return await self.uow.user_repository.get_count()
+
     async def create(self, **kwargs):
         async with self.uow:
             return await self.uow.user_repository.create(**kwargs)

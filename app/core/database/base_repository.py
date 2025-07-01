@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Sequence, TypeVar
 
-from sqlalchemy import asc, delete, desc, select, update
+from sqlalchemy import asc, delete, desc, func, select, update
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -64,6 +64,10 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
             stmt = stmt.offset(offset).limit(limit)
 
         return (await self.session.execute(stmt)).scalars().all()
+
+    async def get_count(self) -> int:
+        stmt = select(func.count()).select_from(self.model)
+        return (await self.session.execute(stmt)).scalar()
 
     async def get_first_by_kwargs(self, **kwargs) -> T:
         stmt = select(self.model).filter_by(**kwargs)

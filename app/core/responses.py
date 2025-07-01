@@ -8,6 +8,8 @@ DataModel = TypeVar("DataModel", bound=BaseModel)
 
 class PaginatedResponse(BaseModel, Generic[DataModel]):
     count: int
+    page: int
+    page_size: int
     data: list[DataModel]
 
 

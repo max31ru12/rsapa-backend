@@ -31,8 +31,19 @@ async def get_users(
     filters: Annotated[UsersFilter, Depends()] = None,
 ) -> PaginatedResponse[UserSchema]:
     try:
-        users = await user_service.get_all(*params, ordering, filters.model_dump(exclude_none=True))
+        users = await user_service.get_all(
+            order_by=ordering,
+            filters=filters.model_dump(exclude_none=True),
+            limit=params["limit"],
+            offset=params["offset"],
+        )
+        users_count = await user_service.get_all_users_count()
         data = [UserSchema.from_orm(user) for user in users]
-        return PaginatedResponse(count=len(users), data=data)
+        return PaginatedResponse(
+            count=users_count,
+            data=data,
+            page=params["page"],
+            page_size=params["page_size"],
+        )
     except InvalidOrderAttributeError:
         raise UserListResponses.INVALID_SORTER_FIELD

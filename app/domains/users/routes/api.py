@@ -27,14 +27,24 @@ class UserListResponses(InvalidRequestParamsResponses):
 
 @router.get("/", responses=UserListResponses.responses)
 async def get_all_users(
-    service: UserServiceDep,
+    user_service: UserServiceDep,
     params: PaginationParamsDep,
     ordering: OrderingParamsDep = None,
 ) -> PaginatedResponse[UserSchema]:
     try:
-        users = await service.get_all(*params, ordering)
+        users = await user_service.get_all(
+            order_by=ordering,
+            limit=params["limit"],
+            offset=params["offset"],
+        )
+        users_count = await user_service.get_all_users_count()
         data = [UserSchema.from_orm(user) for user in users]
-        return PaginatedResponse(count=len(users), data=data)
+        return PaginatedResponse(
+            count=users_count,
+            data=data,
+            page=params["page"],
+            page_size=params["page_size"],
+        )
     except InvalidOrderAttributeError:
         raise UserListResponses.INVALID_SORTER_FIELD
 
