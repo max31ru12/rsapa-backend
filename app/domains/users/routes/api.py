@@ -5,9 +5,6 @@ from fastapi import APIRouter, File, Path, UploadFile
 from fastapi_exception_responses import Responses
 
 from app.core.config import BASE_DIR
-from app.core.database.base_repository import InvalidOrderAttributeError
-from app.core.request_params import OrderingParamsDep, PaginationParamsDep
-from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.auth.utils import CurrentUserDep
 from app.domains.users.models import UpdateUserSchema, UserSchema
 from app.domains.users.services import UserServiceDep
@@ -17,36 +14,8 @@ router = APIRouter(tags=["users"], prefix="/users")
 
 
 @router.get("/current-user")
-async def get_current_user(user: CurrentUserDep) -> UserSchema:
-    return user
-
-
-class UserListResponses(InvalidRequestParamsResponses):
-    pass
-
-
-@router.get("/", responses=UserListResponses.responses)
-async def get_all_users(
-    user_service: UserServiceDep,
-    params: PaginationParamsDep,
-    ordering: OrderingParamsDep = None,
-) -> PaginatedResponse[UserSchema]:
-    try:
-        users = await user_service.get_all(
-            order_by=ordering,
-            limit=params["limit"],
-            offset=params["offset"],
-        )
-        users_count = await user_service.get_all_users_count()
-        data = [UserSchema.from_orm(user) for user in users]
-        return PaginatedResponse(
-            count=users_count,
-            data=data,
-            page=params["page"],
-            page_size=params["page_size"],
-        )
-    except InvalidOrderAttributeError:
-        raise UserListResponses.INVALID_SORTER_FIELD
+async def get_current_user(current_user: CurrentUserDep) -> UserSchema:
+    return current_user
 
 
 class GetUserResponses(Responses):
@@ -56,9 +25,9 @@ class GetUserResponses(Responses):
 @router.get("/{user_id}", summary="Get user by id", responses=GetUserResponses.responses)
 async def get_user(
     user_id: Annotated[int, Path(...)],
-    service: UserServiceDep,
+    user_service: UserServiceDep,
 ) -> UserSchema:
-    user = await service.get_user_by_kwargs(id=user_id)
+    user = await user_service.get_user_by_kwargs(id=user_id)
     if user is None:
         raise GetUserResponses.USER_NOT_FOUND
     return UserSchema.from_orm(user)
@@ -71,7 +40,7 @@ class UpdateUserDataResponses(Responses):
 
 @router.put("/{user_id}", summary="Update user data", responses=UpdateUserDataResponses.responses)
 async def update_user_data(
-    service: UserServiceDep,
+    user_service: UserServiceDep,
     current_user: CurrentUserDep,
     user_id: Annotated[int, Path(...)],
     update_data: UpdateUserSchema | None = None,
@@ -80,7 +49,7 @@ async def update_user_data(
         raise UpdateUserDataResponses.PERMISSION_DENIED
 
     try:
-        user = await service.update_user(user_id=user_id, update_data=update_data.model_dump(exclude_none=True))
+        user = await user_service.update_user(user_id=user_id, update_data=update_data.model_dump(exclude_none=True))
     except ValueError:
         raise UpdateUserDataResponses.USER_NOT_FOUND
     return UserSchema.from_orm(user)
@@ -95,8 +64,8 @@ class SetAvatarResponses(Responses):
     "/{user_id}/avatar", summary="Upload user avatar image", status_code=201, responses=SetAvatarResponses.responses
 )
 async def upload_user_avatar(
-    service: UserServiceDep,
-    user: CurrentUserDep,
+    user_service: UserServiceDep,
+    current_user: CurrentUserDep,  # noqa
     user_id: Annotated[int, Path()],
     file: Annotated[UploadFile, File(...)],
 ):
@@ -106,9 +75,29 @@ async def upload_user_avatar(
     relative_filepath = await write_file(file)
 
     try:
-        await service.set_user_avatar(user_id=user_id, avatar_path=relative_filepath)
+        await user_service.set_user_avatar(user_id=user_id, avatar_path=relative_filepath)
     except ValueError:
         os.remove(BASE_DIR / relative_filepath)
         raise SetAvatarResponses.USER_NOT_FOUND
 
     return {"path": relative_filepath}
+
+
+class DeleteUserAvatarResponses(Responses):
+    USER_NOT_FOUND = 404, "User with provided id not found"
+
+
+@router.delete(
+    "/{user_id}/avatar",
+    summary="Delete user avatar",
+    responses=DeleteUserAvatarResponses.responses,
+)
+async def remove_user_avatar(
+    user_id: Annotated[int, Path()],
+    user_service: UserServiceDep,
+    current_user: CurrentUserDep,  # noqa
+):
+    try:
+        await user_service.delete_avatar(user_id)
+    except ValueError:
+        raise DeleteUserAvatarResponses.USER_NOT_FOUND

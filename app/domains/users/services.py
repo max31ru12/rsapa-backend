@@ -8,6 +8,11 @@ from app.core.config import BASE_DIR
 from app.domains.users.database import UserUnitOfWork, get_user_unit_of_work
 from app.domains.users.models import User
 
+"""
+Не использую HTTPExceptions в сервисах, так как
+это сделало бы сервисы зависимыми от фреймворка
+"""
+
 
 class UserService:
     def __init__(self, uow):
@@ -40,7 +45,7 @@ class UserService:
                 os.remove(BASE_DIR / user.avatar_path)
             await self.uow.user_repository.update(user_id, {"avatar_path": avatar_path})
 
-    async def update_user(self, user_id: int, update_data: dict):
+    async def update_user(self, user_id: int, update_data: dict) -> User:
         async with self.uow:
             user = await self.uow.user_repository.get_first_by_kwargs(id=user_id)
             if user is None:
@@ -48,7 +53,13 @@ class UserService:
             await self.uow.user_repository.update(user_id, update_data)
         return user
 
-    # async def
+    async def delete_avatar(self, user_id: int) -> None:
+        async with self.uow:
+            user = await self.uow.user_repository.get_first_by_kwargs(id=user_id)
+            if user is None:
+                raise ValueError("There is no such user with provided id")
+            await self.uow.user_repository.update(user_id, {"avatar_path": None})
+            os.remove(BASE_DIR / user.avatar_path)
 
 
 def get_user_service(uow: Annotated[UserUnitOfWork, Depends(get_user_unit_of_work)]) -> UserService:

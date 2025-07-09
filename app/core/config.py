@@ -8,6 +8,7 @@ load_dotenv()
 
 DEV_MODE: bool = getenv("DEV_MODE", "true").strip().lower() in {"true", "1", "yes"}
 
+# ~\Desktop\rsapa-backend
 BASE_DIR = Path(__file__).parent.parent.parent
 
 CONVENTION = {
