@@ -18,5 +18,7 @@ def build_conditions(model, filters: dict):
             conditions.append(column == value)
         elif operator == "icontains":
             conditions.append(column.ilike(f"%{value}%"))
+        elif operator == "startswith":
+            conditions.append(column.ilike(f"{value}%"))
 
     return conditions
