@@ -18,9 +18,9 @@ class UserService:
     def __init__(self, uow):
         self.uow = uow
 
-    async def get_all(
+    async def get_all_paginated_counted(
         self, limit: int = None, offset: int = None, order_by: str = None, filters: dict[str, Any] = None
-    ) -> list[User]:
+    ) -> [list[User], int]:
         async with self.uow:
             return await self.uow.user_repository.list(limit, offset, order_by, filters)
 

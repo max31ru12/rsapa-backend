@@ -45,11 +45,14 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
 
     async def list(
         self, limit: int = None, offset: int = None, order_by: str = None, filters: dict[str, Any] = None
-    ) -> Sequence[T]:
+    ) -> [Sequence[T], int]:
         stmt = select(self.model)
+        count_stmt = select(func.count()).select_from(self.model)
 
         if filters:
-            stmt = stmt.filter(*build_conditions(self.model, filters))
+            conditions = build_conditions(self.model, filters)
+            stmt = stmt.filter(*conditions)
+            count_stmt = count_stmt.filter(*conditions)
 
         if order_by is not None:
             for param in order_by.split(","):
@@ -63,7 +66,10 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
         if limit is not None and offset is not None:
             stmt = stmt.offset(offset).limit(limit)
 
-        return (await self.session.execute(stmt)).scalars().all()
+        data = (await self.session.execute(stmt)).scalars().all()
+        count = (await self.session.execute(count_stmt)).scalar_one()
+
+        return data, count
 
     async def get_count(self) -> int:
         stmt = select(func.count()).select_from(self.model)

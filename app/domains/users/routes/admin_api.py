@@ -34,13 +34,12 @@ async def get_users(
     filters: Annotated[UsersFilter, Depends()] = None,
 ) -> PaginatedResponse[UserSchema]:
     try:
-        users = await user_service.get_all(
+        users, users_count = await user_service.get_all_paginated_counted(
             order_by=ordering,
             filters=filters.model_dump(exclude_none=True),
             limit=params["limit"],
             offset=params["offset"],
         )
-        users_count = await user_service.get_all_users_count()
         data = [UserSchema.from_orm(user) for user in users]
         return PaginatedResponse(
             count=users_count,
