@@ -1,12 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends
 
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.auth.utils import AdminUserDep
+from app.domains.filters import UsersFilter
 from app.domains.users.models import UserSchema
 from app.domains.users.services import UserServiceDep
 
@@ -15,14 +15,6 @@ router = APIRouter(tags=["Users admin"], prefix="/stuff/users")
 
 class UserListResponses(InvalidRequestParamsResponses):
     pass
-
-
-class UsersFilter(BaseModel):
-    pending: Annotated[bool | None, Query(description="Pending filter")] = None
-    stuff: Annotated[bool | None, Query(description="Stuff filter")] = None
-    email__startswith: Annotated[str | None, Query(description="Email filter")] = None
-    firstname__startswith: Annotated[str | None, Query(description="Firstname startswith")] = None
-    lastname__startswith: Annotated[str | None, Query(description="Lastname startswith")] = None
 
 
 @router.get("/")

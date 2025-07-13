@@ -1,16 +1,49 @@
 import os
 from typing import Annotated
 
-from fastapi import APIRouter, File, Path, UploadFile
+from fastapi import APIRouter, Depends, File, Path, UploadFile
 from fastapi_exception_responses import Responses
 
 from app.core.config import BASE_DIR
+from app.core.database.base_repository import InvalidOrderAttributeError
+from app.core.request_params import OrderingParamsDep, PaginationParamsDep
+from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.auth.utils import CurrentUserDep
+from app.domains.filters import UsersFilter
 from app.domains.users.models import UpdateUserSchema, UserSchema
 from app.domains.users.services import UserServiceDep
 from app.domains.users.utils import write_file
 
 router = APIRouter(tags=["users"], prefix="/users")
+
+
+class UserListResponses(InvalidRequestParamsResponses):
+    pass
+
+
+@router.get("/")
+async def get_users(
+    user_service: UserServiceDep,
+    params: PaginationParamsDep,
+    ordering: OrderingParamsDep = None,
+    filters: Annotated[UsersFilter, Depends()] = None,
+) -> PaginatedResponse[UserSchema]:
+    try:
+        users, users_count = await user_service.get_all_paginated_counted(
+            order_by=ordering,
+            filters=filters.model_dump(exclude_none=True),
+            limit=params["limit"],
+            offset=params["offset"],
+        )
+        data = [UserSchema.from_orm(user) for user in users]
+        return PaginatedResponse(
+            count=users_count,
+            data=data,
+            page=params["page"],
+            page_size=params["page_size"],
+        )
+    except InvalidOrderAttributeError:
+        raise UserListResponses.INVALID_SORTER_FIELD
 
 
 @router.get("/current-user")

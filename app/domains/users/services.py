@@ -58,8 +58,8 @@ class UserService:
             user = await self.uow.user_repository.get_first_by_kwargs(id=user_id)
             if user is None:
                 raise ValueError("There is no such user with provided id")
-            await self.uow.user_repository.update(user_id, {"avatar_path": None})
             os.remove(BASE_DIR / user.avatar_path)
+            await self.uow.user_repository.update(user_id, {"avatar_path": None})
 
 
 def get_user_service(uow: Annotated[UserUnitOfWork, Depends(get_user_unit_of_work)]) -> UserService:
