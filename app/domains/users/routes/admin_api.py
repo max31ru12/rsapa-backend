@@ -6,7 +6,7 @@ from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.auth.utils import AdminUserDep
-from app.domains.filters import UsersFilter
+from app.domains.users.filters import UsersFilter
 from app.domains.users.models import UserSchema
 from app.domains.users.services import UserServiceDep
 

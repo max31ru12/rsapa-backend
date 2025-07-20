@@ -10,7 +10,7 @@ from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.core.utils.mail import send_email
 from app.domains.auth.utils import CurrentUserDep
-from app.domains.filters import UsersFilter
+from app.domains.users.filters import UsersFilter
 from app.domains.users.models import UpdateUserSchema, UserSchema
 from app.domains.users.services import UserServiceDep
 from app.domains.users.utils import write_file

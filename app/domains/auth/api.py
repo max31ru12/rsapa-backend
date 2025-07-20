@@ -7,8 +7,7 @@ from starlette.responses import Response
 
 from app.core.database.setup_db import session_getter
 from app.domains.auth.schemas import AccessToken, JWTTokenResponse, LoginForm, RegisterFormData
-from app.domains.auth.services import AuthServiceDep
-from app.domains.auth.use_cases import RegisterResponses, get_subscriptions
+from app.domains.auth.services import AuthServiceDep, get_subscriptions
 from app.domains.auth.utils import (
     RefreshTokenDep,
     create_access_token,
@@ -18,6 +17,11 @@ from app.domains.users.models import UserSchema
 from app.domains.users.services import UserServiceDep
 
 router = APIRouter(tags=["Authentication"], prefix="/auth")
+
+
+class RegisterResponses(Responses):
+    PASSWORDS_DONT_MATCH = 400, "Passwords don't match"
+    EMAIL_ALREADY_IN_USE = 409, "Provided email is already in use"
 
 
 @router.post(

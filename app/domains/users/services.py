@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from fastapi import Depends
 
 from app.core.config import BASE_DIR
-from app.domains.users.database import UserUnitOfWork, get_user_unit_of_work
+from app.domains.users.infrastructure import UserUnitOfWork, get_user_unit_of_work
 from app.domains.users.models import User
 
 """

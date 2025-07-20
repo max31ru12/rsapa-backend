@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Sequence
 
 from fastapi import Depends
 from fastapi_exception_responses import Responses
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.auth.database import AuthUnitOfWork, get_auth_unit_of_work
+from app.domains.auth.infrastructure import AuthUnitOfWork, get_auth_unit_of_work
+from app.domains.auth.models import SubscriptionType
 from app.domains.auth.schemas import RegisterFormData
 
 
@@ -41,6 +44,12 @@ class AuthService:
                 subscription_type_id=subscription_type.id,
             )
             return user
+
+
+async def get_subscriptions(session: AsyncSession) -> Sequence[SubscriptionType]:
+    async with session:
+        result = await session.execute(select(SubscriptionType))
+        return result.scalars().all()
 
 
 def get_auth_service(uow: Annotated[AuthUnitOfWork, Depends(get_auth_unit_of_work)]) -> AuthService:
