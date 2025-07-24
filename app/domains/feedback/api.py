@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi_exception_responses import Responses
 
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
@@ -45,3 +46,27 @@ async def get_contact_messages(
         )
     except InvalidOrderAttributeError:
         raise InvalidRequestParamsResponses.INVALID_SORTER_FIELD
+
+
+class AnswerContactMessageResponses(Responses):
+    CONTACT_MESSAGE_NOT_FOUND = 404, "There is no contact message with provided id"
+
+
+@router.post(
+    "/{message_id}/answers",
+    responses=AnswerContactMessageResponses.responses,
+    status_code=201,
+    summary="Creates an answer for the contact request",
+)
+async def answer_contact_message(
+    message_id: int,
+    subject: str,
+    answer_message: str,
+    admin: AdminUserDep,  # noqa Admin auth argument
+    contact_message_service: ContactMessageServiceDep,
+):
+    try:
+        await contact_message_service.answer_contact_message(message_id, subject, answer_message)
+    except ValueError:
+        raise AnswerContactMessageResponses.CONTACT_MESSAGE_NOT_FOUND
+    return "Answered"

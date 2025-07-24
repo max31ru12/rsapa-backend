@@ -17,7 +17,7 @@ class UserListResponses(InvalidRequestParamsResponses):
     pass
 
 
-@router.get("/")
+@router.get("/", responses=UserListResponses.responses)
 async def get_users(
     user_service: UserServiceDep,
     params: PaginationParamsDep,

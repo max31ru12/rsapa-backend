@@ -4,11 +4,11 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database.mixins import ICMixin
+from app.core.database.mixins import UCIMixin
 from app.core.database.setup_db import Base
 
 
-class ContactMessage(Base, ICMixin):
+class ContactMessage(Base, UCIMixin):
     __tablename__ = "contact_messages"
 
     name: Mapped[str] = mapped_column(String(256), nullable=False)
@@ -28,6 +28,7 @@ class CreateContactMessageSchema(BaseModel):
 class ContactMessageSchema(CreateContactMessageSchema):
     id: int
     created_at: datetime
+    updated_at: datetime
 
     model_config = {
         "from_attributes": True,

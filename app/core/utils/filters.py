@@ -1,7 +1,7 @@
 from sqlalchemy.orm import InstrumentedAttribute
 
 
-def build_conditions(model, filters: dict):
+def build_conditions(model, filters: dict[str, str]):
     conditions = []
 
     for key, value in filters.items():

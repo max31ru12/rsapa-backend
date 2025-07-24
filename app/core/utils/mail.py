@@ -7,7 +7,7 @@ async def send_email(
     to_email: str,
     subject: str,
     body: str,
-    plain: bool = False,
+    plain: bool = True,
 ):
     subtype = MessageType.plain if plain else MessageType.html
     message = MessageSchema(
