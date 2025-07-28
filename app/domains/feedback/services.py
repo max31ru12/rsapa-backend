@@ -29,6 +29,8 @@ class ContactMessageService:
             if contact_message is None:
                 raise ValueError("There is no contact message with provided id")
 
+            await self.uow.contact_message_repository.update(contact_message_id, {"answered": True})
+
         await send_email(
             to_email=contact_message.email,
             subject=subject,

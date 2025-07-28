@@ -1,14 +1,13 @@
 import os
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
+from fastapi import APIRouter, Depends, File, Path, UploadFile
 from fastapi_exception_responses import Responses
 
 from app.core.config import BASE_DIR
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
-from app.core.utils.mail import send_email
 from app.domains.auth.utils import CurrentUserDep
 from app.domains.users.filters import UsersFilter
 from app.domains.users.models import UpdateUserSchema, UserSchema
@@ -16,12 +15,6 @@ from app.domains.users.services import UserServiceDep
 from app.domains.users.utils import write_file
 
 router = APIRouter(tags=["users"], prefix="/users")
-
-
-@router.post("/send-email/")
-async def send_test_email(background_tasks: BackgroundTasks, email_to: str):
-    background_tasks.add_task(send_email, email_to, "Тестовое письмо", "<b>Это тестовое письмо</b>")
-    return {"msg": "Письмо отправлено"}
 
 
 class UserListResponses(InvalidRequestParamsResponses):

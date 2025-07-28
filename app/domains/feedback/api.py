@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi_exception_responses import Responses
+from pydantic import BaseModel
 
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
@@ -52,6 +53,11 @@ class AnswerContactMessageResponses(Responses):
     CONTACT_MESSAGE_NOT_FOUND = 404, "There is no contact message with provided id"
 
 
+class AnswerContactMessageBody(BaseModel):
+    subject: str
+    answer_message: str
+
+
 @router.post(
     "/{message_id}/answers",
     responses=AnswerContactMessageResponses.responses,
@@ -60,13 +66,12 @@ class AnswerContactMessageResponses(Responses):
 )
 async def answer_contact_message(
     message_id: int,
-    subject: str,
-    answer_message: str,
+    body: AnswerContactMessageBody,
     admin: AdminUserDep,  # noqa Admin auth argument
     contact_message_service: ContactMessageServiceDep,
 ):
     try:
-        await contact_message_service.answer_contact_message(message_id, subject, answer_message)
+        await contact_message_service.answer_contact_message(message_id, **body.model_dump())
     except ValueError:
         raise AnswerContactMessageResponses.CONTACT_MESSAGE_NOT_FOUND
     return "Answered"
