@@ -13,6 +13,7 @@ from app.domains.auth.models import UserSubscription
 
 if TYPE_CHECKING:
     from app.domains.auth.models import UserSubscription
+    from app.domains.news.models import News
 
 
 class User(Base):
@@ -34,6 +35,7 @@ class User(Base):
     role: Mapped[str] = mapped_column()
 
     subscriptions: Mapped["UserSubscription"] = relationship(back_populates="user")
+    news: Mapped["News"] = relationship(back_populates="author")
 
     _password: Mapped[str] = mapped_column()
     avatar_path: Mapped[str] = mapped_column(nullable=True, unique=True)

@@ -10,6 +10,7 @@ from app.core.config import DB_URL
 from app.core.database.setup_db import Base
 from app.domains.auth.models import SubscriptionType, UserSubscription  # noqa
 from app.domains.feedback.models import ContactMessage  # noqa
+from app.domains.news.models import News  # noqa
 from app.domains.users.models import User  # noqa
 
 # this is the Alembic Config object, which provides

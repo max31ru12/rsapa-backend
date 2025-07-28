@@ -69,7 +69,7 @@ async def answer_contact_message(
     body: AnswerContactMessageBody,
     admin: AdminUserDep,  # noqa Admin auth argument
     contact_message_service: ContactMessageServiceDep,
-):
+) -> str:
     try:
         await contact_message_service.answer_contact_message(message_id, **body.model_dump())
     except ValueError:
