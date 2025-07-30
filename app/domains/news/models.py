@@ -20,7 +20,7 @@ class News(Base, UCIMixin):
     is_published: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
 
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    author: Mapped["User"] = relationship(back_populates="news")
+    author: Mapped["User"] = relationship("User", back_populates="news")
 
 
 class NewsSchema(BaseModel):

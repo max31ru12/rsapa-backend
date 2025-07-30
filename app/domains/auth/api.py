@@ -20,7 +20,6 @@ router = APIRouter(tags=["Authentication"], prefix="/auth")
 
 
 class RegisterResponses(Responses):
-    PASSWORDS_DONT_MATCH = 400, "Passwords don't match"
     EMAIL_ALREADY_IN_USE = 409, "Provided email is already in use"
 
 
@@ -35,7 +34,7 @@ async def register(
     auth_service: AuthServiceDep,
 ) -> UserSchema:
     user = await auth_service.register_user(register_form_data)
-    return UserSchema.from_orm(user)
+    return UserSchema.model_validate(user)
 
 
 class LoginResponses(Responses):

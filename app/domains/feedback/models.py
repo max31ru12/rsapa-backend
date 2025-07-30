@@ -19,10 +19,10 @@ class ContactMessage(Base, UCIMixin):
 
 
 class CreateContactMessageSchema(BaseModel):
-    name: str = Field(min_lingth=2, max_length=128)
+    name: str = Field(min_length=2, max_length=128)
     email: EmailStr
-    subject: str = Field(min_lingth=2, max_length=128)
-    message: str = Field(min_lingth=2, max_length=256)
+    subject: str = Field(min_length=2, max_length=128)
+    message: str = Field(min_length=2, max_length=256)
 
 
 class ContactMessageSchema(CreateContactMessageSchema):

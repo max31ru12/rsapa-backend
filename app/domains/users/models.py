@@ -34,8 +34,8 @@ class User(Base):
     institution: Mapped[str] = mapped_column()
     role: Mapped[str] = mapped_column()
 
-    subscriptions: Mapped["UserSubscription"] = relationship(back_populates="user")
-    news: Mapped["News"] = relationship(back_populates="author")
+    subscriptions: Mapped[list["UserSubscription"]] = relationship(back_populates="user")
+    news: Mapped[list["News"]] = relationship("News", back_populates="author")
 
     _password: Mapped[str] = mapped_column()
     avatar_path: Mapped[str] = mapped_column(nullable=True, unique=True)
