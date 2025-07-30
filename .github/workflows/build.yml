@@ -11,8 +11,12 @@ jobs:
   setup-docker:
     uses: ./.github/workflows/setup-docker.yml
 
+  setup-envs:
+    uses: ./.github/workflows/setup-envs.yml
+
   prepare:
     runs-on: ubuntu-latest
+    needs: setup-envs
     steps:
       - uses: actions/checkout@main
       - uses: actions/setup-python@v2
@@ -25,11 +29,6 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           poetry install --with dev
 
-      - name: Set environment variables
-        run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
-
       - name: Lint with ruff
         run: |
            poetry run ruff check .
@@ -40,22 +39,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set environment variables
-        run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
-
-          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
-          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
-          echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env
-          echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
-          echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env
-
-          echo "DB_PORT=5432" >> .env
-          echo "DB_PASSWORD=test" >> .env
-          echo "DB_USER=test" >> .env
-          echo "DB_NAME=test" >> .env
 
       - name: Run docker compose
         run: |
@@ -84,24 +67,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set environment variables
-        run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
-
-          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
-          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
-          echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env
-          echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
-          echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env
-
-          echo "DB_PORT=5432" >> .env
-          echo "DB_PASSWORD=test" >> .env
-          echo "DB_USER=test" >> .env
-          echo "DB_NAME=test" >> .env
-          echo "DB_NAME=localhost" >> .env
-
 
       - name: Run docker compose
         run: |
