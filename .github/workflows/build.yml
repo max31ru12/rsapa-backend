@@ -9,7 +9,7 @@ on:
 jobs:
 
   setup-docker:
-    uses: ./setup-docker.yml
+    uses: ./.github/workflows/setup-docker.yml
 
   prepare:
     runs-on: ubuntu-latest
