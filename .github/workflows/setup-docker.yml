@@ -5,7 +5,7 @@ on:
 
 jobs:
 
-  setup_envs:
+  setup-envs:
     uses: ./.github/workflows/setup-envs.yml
 
   setup_docker:
