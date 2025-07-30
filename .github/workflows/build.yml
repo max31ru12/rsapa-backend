@@ -130,4 +130,4 @@ jobs:
 
       - name: Run tests
         run: |
-          docker compsoe -f local.yml run --rm rsapa_backend poetry run pytest
+          docker compose -f local.yml run --rm rsapa_backend poetry run pytest
