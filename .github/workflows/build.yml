@@ -128,6 +128,73 @@ jobs:
         run: |
           docker compose -f local.yml run --rm rsapa_backend poetry run alembic upgrade head
 
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set environment variables
+        run: |
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
+
+          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
+          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
+          echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env
+          echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
+          echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env
+
+          echo "DB_PORT=5432" >> .env
+          echo "DB_PASSWORD=test" >> .env
+          echo "DB_USER=test" >> .env
+          echo "DB_NAME=test" >> .env
+          echo "DB_NAME=localhost" >> .env
+
+
+      - name: Set up docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+
+          sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+          sudo docker run hello-world
+
+
+
+      - name: Run docker compose
+        run: |
+          docker compose -f local.yml up -d rsapa_database
+
+          for i in {1..10}; do
+            if docker exec $(docker ps -q -f ancestor=postgres:alpine) pg_isready -U test; then
+              echo "PostgreSQL is ready"
+              exit 0
+            fi
+            echo "Waiting for PostgreSQL..."
+            sleep 5
+          done
+          echo "PostgreSQL failed to start"
+          exit 1
+
+          docker compose -f local.yml run --rm rsapa_backend poetry run alembic upgrade head
+
+      - name: Install dependencies
+        run: |
+          sudo curl -sSL https://install.python-poetry.org | python3 -
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry install --with dev
+
       - name: Run tests
         run: |
-          docker compose -f local.yml run --rm rsapa_backend poetry run pytest
+          poetry run pytest
