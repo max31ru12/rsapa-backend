@@ -66,11 +66,6 @@ jobs:
           echo "PostgreSQL failed to start"
           exit 1
 
-# Not implemented yet
-#      - name: Run tests
-#        run: |
-#          poetry run pytest
-
   migrations:
     runs-on: ubuntu-latest
     steps:
@@ -135,4 +130,4 @@ jobs:
 
       - name: Run tests
         run: |
-          poetry run pytest
+          docker compsoe -f local.yml run --rm rsapa_backend poetry run pytest
