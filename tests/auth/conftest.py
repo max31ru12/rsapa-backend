@@ -3,6 +3,9 @@ from typing import Any
 import pytest
 from faker import Faker
 
+from app.domains.users.infrastructure import UserUnitOfWork
+from app.domains.users.models import User
+
 
 @pytest.fixture(scope="function")
 def register_user_data(faker: Faker) -> dict[str, Any]:
@@ -32,3 +35,15 @@ def login_data(faker: Faker):
         "email": faker.email(),
         "password": faker.password(),
     }
+
+
+@pytest.fixture(scope="function")
+async def test_user_with_data(
+    user_uow: UserUnitOfWork,
+    user_data: dict[str | Any],
+) -> dict[str, User | dict]:
+    user_creation_data = user_data.copy()
+    user_creation_data.pop("subscription_type_id")
+    user = await user_uow.user_repository.create(**user_creation_data)
+
+    return {"user": user, "user_data": user_data}
