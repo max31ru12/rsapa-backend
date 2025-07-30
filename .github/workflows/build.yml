@@ -132,3 +132,7 @@ jobs:
       - name: Run migrations
         run: |
           docker compose -f local.yml run --rm rsapa_backend poetry run alembic upgrade head
+
+      - name: Run tests
+        run: |
+          poetry run pytest
