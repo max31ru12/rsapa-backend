@@ -38,6 +38,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set envs
+        run: |
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
+
+          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
+          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
+          echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env
+          echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
+          echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env
+
+          echo "DB_PORT=5432" >> .env
+          echo "DB_PASSWORD=test" >> .env
+          echo "DB_USER=test" >> .env
+          echo "DB_NAME=test" >> .env
+          echo "DB_NAME=localhost" >> .env
+
       - name: Run docker compose
         run: |
           docker compose -f local.yml up -d
@@ -65,6 +82,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Set envs
+        run: |
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
+
+          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
+          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
+          echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env
+          echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
+          echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env
+
+          echo "DB_PORT=5432" >> .env
+          echo "DB_PASSWORD=test" >> .env
+          echo "DB_USER=test" >> .env
+          echo "DB_NAME=test" >> .env
+          echo "DB_NAME=localhost" >> .env
 
       - name: Run docker compose
         run: |
