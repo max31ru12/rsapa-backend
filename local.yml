@@ -31,7 +31,7 @@ services:
     env_file:
       - .env
     environment:
-      - DB_HOST=rsapa_database
+      - DB_HOST=${DB_HOST:-rsapa_database}
       - DEV_MODE=${DEV_MODE:-true}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
