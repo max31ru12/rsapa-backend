@@ -53,11 +53,16 @@ def create_refresh_token(data: dict, remember_me: bool = False) -> str:
     return refresh_token
 
 
-def verify_refresh_token(refresh_token: Annotated[str, Depends(refresh_token_cookie)]) -> dict | None:
+async def verify_refresh_token(
+    user_service: UserServiceDep, refresh_token: Annotated[str, Depends(refresh_token_cookie)]
+) -> dict | None:
     if refresh_token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
     try:
         payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user = await user_service.get_user_by_kwargs(email=payload["email"])
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token is invalid")
         return payload
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token is invalid")

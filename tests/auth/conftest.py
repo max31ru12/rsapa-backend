@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from faker import Faker
 
+from app.domains.auth.utils import create_access_token, create_refresh_token
 from app.domains.users.infrastructure import UserUnitOfWork
 from app.domains.users.models import User
 
@@ -41,9 +42,32 @@ def login_data(faker: Faker):
 async def test_user_with_data(
     user_uow: UserUnitOfWork,
     user_data: dict[str | Any],
-) -> dict[str, User | dict]:
+) -> [User, dict]:
     user_creation_data = user_data.copy()
     user_creation_data.pop("subscription_type_id")
     user = await user_uow.user_repository.create(**user_creation_data)
 
-    return {"user": user, "user_data": user_data}
+    return user, user_data
+
+
+@pytest.fixture(scope="function")
+async def test_user(
+    user_uow: UserUnitOfWork,
+    user_data: dict[str | Any],
+) -> User:
+    user_creation_data = user_data.copy()
+    user_creation_data.pop("subscription_type_id")
+    user = await user_uow.user_repository.create(**user_creation_data)
+
+    return user
+
+
+@pytest.fixture(scope="function")
+def authentication_data(
+    test_user: User,
+) -> [dict[str, str], dict[str, str], str]:
+    user = test_user
+    access_token = create_access_token({"email": user.email})
+    refresh_token = create_refresh_token({"email": user.email}, remember_me=False)
+
+    return {"Authorization": f"Bearer {access_token}"}, {"refresh_token": refresh_token}, user.email

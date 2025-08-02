@@ -1,4 +1,10 @@
+from typing import Annotated
+
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database.base_repository import SQLAlchemyRepository
+from app.core.database.setup_db import session_getter
 from app.core.database.unit_of_work import SQLAlchemyUnitOfWork
 from app.domains.users.models import User
 
@@ -13,5 +19,5 @@ class UserUnitOfWork(SQLAlchemyUnitOfWork):
         self.user_repository = UserRepository(self._session)
 
 
-def get_user_unit_of_work() -> UserUnitOfWork:
-    return UserUnitOfWork()
+def get_user_unit_of_work(session: Annotated[AsyncSession, Depends(session_getter)]) -> UserUnitOfWork:
+    return UserUnitOfWork(session)

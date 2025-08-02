@@ -12,8 +12,11 @@ from tests.auth.utils import decode_jwt
 pytestmark = pytest.mark.anyio
 
 
-async def test_login(client: AsyncClient, test_user_with_data: dict[str, User | dict]) -> None:
-    user_data = test_user_with_data["user_data"]
+async def test_login(
+    client: AsyncClient,
+    test_user_with_data: [User, dict],
+) -> None:
+    _, user_data = test_user_with_data
 
     response = await client.post(
         "api/auth/login",
@@ -27,9 +30,9 @@ async def test_login(client: AsyncClient, test_user_with_data: dict[str, User | 
 
 async def test_access_token_expiry(
     client,
-    test_user_with_data: dict[str, User | dict],
+    test_user_with_data: [User, dict],
 ) -> None:
-    user_data = test_user_with_data["user_data"]
+    _, user_data = test_user_with_data
 
     response = await client.post(
         "/api/auth/login",
@@ -52,9 +55,9 @@ async def test_access_token_expiry(
 
 async def test_refresh_token_expiry_with_remember_me(
     client,
-    test_user_with_data: dict[str, User | dict],
+    test_user_with_data: [User, dict],
 ) -> None:
-    user_data = test_user_with_data["user_data"]
+    _, user_data = test_user_with_data
 
     response = await client.post(
         "/api/auth/login",
@@ -76,9 +79,9 @@ async def test_refresh_token_expiry_with_remember_me(
 
 async def test_refresh_token_expiry(
     client,
-    test_user_with_data: dict[str, User | dict],
+    test_user_with_data: [User, dict],
 ) -> None:
-    user_data = test_user_with_data["user_data"]
+    _, user_data = test_user_with_data
 
     response = await client.post(
         "/api/auth/login",
