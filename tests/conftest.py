@@ -11,10 +11,10 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.core.config import TEST_DB_URL
-from app.core.database.setup_db import Base
-from app.domains.auth.infrastructure import AuthUnitOfWork, get_auth_unit_of_work
+from app.core.database.setup_db import Base, session_getter
+from app.domains.auth.infrastructure import AuthUnitOfWork
 from app.domains.auth.models import SubscriptionType
-from app.domains.users.infrastructure import UserUnitOfWork, get_user_unit_of_work
+from app.domains.users.infrastructure import UserUnitOfWork
 
 pytest_plugins = ("anyio",)
 
@@ -31,13 +31,13 @@ def test_engine() -> AsyncEngine:
 
 
 @pytest.fixture(scope="session")
-def test_session_factory(test_engine) -> async_sessionmaker[AsyncSession]:
+def test_session_factory(test_engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     """Returns test session factory"""
     return async_sessionmaker(bind=test_engine, expire_on_commit=False)
 
 
 @pytest.fixture(scope="function")
-async def test_session(test_session_factory) -> AsyncSession:
+async def test_session(test_session_factory: async_sessionmaker[AsyncSession]) -> AsyncSession:
     """Yields test session for test database"""
     async with test_session_factory() as session:
         yield session
@@ -47,7 +47,7 @@ async def test_session(test_session_factory) -> AsyncSession:
 
 
 @pytest.fixture(scope="session")
-async def setup_database(test_engine) -> AsyncIterator[None]:
+async def setup_database(test_engine: AsyncEngine) -> AsyncIterator[None]:
     """Setups database"""
     from app.domains.news.models import News  # noqa raises Mapper initialization errors withot this import
 
@@ -61,7 +61,10 @@ async def setup_database(test_engine) -> AsyncIterator[None]:
 
 
 @pytest.fixture(scope="function")
-async def insert_test_data(setup_database, test_engine):
+async def insert_test_data(
+    setup_database: AsyncIterator[None],
+    test_engine: AsyncEngine,
+) -> None:
     async_session = async_sessionmaker(bind=test_engine, expire_on_commit=False)
     async with async_session() as session:
         session.add_all(
@@ -114,17 +117,16 @@ async def insert_test_data(setup_database, test_engine):
 
 
 @pytest.fixture(scope="function")
-async def client(insert_test_data, test_session: AsyncSession) -> AsyncClient:
+async def client(
+    insert_test_data: None,
+    test_session: AsyncSession,
+) -> AsyncClient:
     from app.main import app
 
-    def override_get_user_uow():
-        return UserUnitOfWork(session=test_session)
+    async def test_session_getter() -> AsyncIterator[AsyncSession]:
+        yield test_session
 
-    def override_get_auth_uow():
-        return AuthUnitOfWork(session=test_session)
-
-    app.dependency_overrides[get_user_unit_of_work] = override_get_user_uow
-    app.dependency_overrides[get_auth_unit_of_work] = override_get_auth_uow
+    app.dependency_overrides[session_getter] = test_session_getter
 
     async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as ac:
         yield ac
@@ -133,16 +135,16 @@ async def client(insert_test_data, test_session: AsyncSession) -> AsyncClient:
 
 
 @pytest.fixture(scope="session")
-def faker():
+def faker() -> Faker:
     fake = Faker()
     yield fake
 
 
 @pytest.fixture()
-def auth_uow(test_session) -> AuthUnitOfWork:
-    return AuthUnitOfWork(session=test_session)
+def auth_uow(test_session: AsyncSession) -> AuthUnitOfWork:
+    return AuthUnitOfWork(test_session)
 
 
 @pytest.fixture()
-def user_uow(test_session) -> UserUnitOfWork:
-    return UserUnitOfWork(session=test_session)
+def user_uow(test_session: AsyncSession) -> UserUnitOfWork:
+    return UserUnitOfWork(test_session)

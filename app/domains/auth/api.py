@@ -9,6 +9,7 @@ from app.core.database.setup_db import session_getter
 from app.domains.auth.schemas import AccessToken, JWTTokenResponse, LoginForm, RegisterFormData
 from app.domains.auth.services import AuthServiceDep, get_subscriptions
 from app.domains.auth.utils import (
+    CurrentUserDep,
     RefreshTokenDep,
     create_access_token,
     create_refresh_token,
@@ -63,7 +64,15 @@ async def login(
     return JWTTokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
-@router.post("/refresh")
+class RefreshAccessTokenResponses(Responses):
+    NOT_AUTHENTICATED = 401, "Not authenticated"
+    INVALID_TOKEN = 401, "Invalid token"
+
+
+@router.post(
+    "/refresh",
+    responses=RefreshAccessTokenResponses.responses,
+)
 async def refresh_access_token(
     response: Response,
     refresh_token_payload: RefreshTokenDep,
@@ -73,10 +82,20 @@ async def refresh_access_token(
     return AccessToken(access_token=access_token)
 
 
-@router.post("/logout")
-async def logout(response: Response) -> str:
+class LogoutResponses(Responses):
+    INVALID_TOKEN = 401, "Invalid token"
+
+
+@router.post(
+    "/logout",
+    responses=LogoutResponses.responses,
+)
+async def logout(
+    response: Response,
+    current_user: CurrentUserDep,  # noqa auth dependency
+) -> str:
     response.delete_cookie("refresh_token")
-    return "successfully logged out"
+    return "Successfully logged out"
 
 
 @router.get("/subscriptions")
