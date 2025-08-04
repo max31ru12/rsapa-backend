@@ -3,6 +3,7 @@ from typing import Annotated, Any
 from fastapi import Depends
 
 from app.domains.news.infrastructure import NewsUnitOfWork, get_news_unit_of_work
+from app.domains.news.models import News
 
 
 class NewsService:
@@ -14,6 +15,17 @@ class NewsService:
     ):
         async with self.uow:
             return await self.uow.news_repository.list(limit, offset, order_by, filters)
+
+    async def create_news(self, **kwargs) -> News:
+        async with self.uow:
+            return await self.uow.news_repository.create(**kwargs)
+
+    async def update_news(self, news_id: int, update_data: dict[str | Any]) -> None:
+        async with self.uow:
+            news = await self.uow.news_repository.get_first_by_kwargs(id=news_id)
+            if news is None:
+                raise ValueError("There is no such user with provided id")
+            await self.uow.news_repository.update(news_id, update_data)
 
 
 def get_news_service(

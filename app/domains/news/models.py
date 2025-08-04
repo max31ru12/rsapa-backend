@@ -2,7 +2,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
-from sqlalchemy import ForeignKey, String, text
+from sqlalchemy import ForeignKey, text
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.mixins import UCIMixin
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 class News(Base, UCIMixin):
     __tablename__ = "news"
 
-    body: Mapped[str] = mapped_column(String(), nullable=False)
+    body: Mapped[str] = mapped_column(JSON(), nullable=False)
 
     is_published: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
 
@@ -23,12 +24,20 @@ class News(Base, UCIMixin):
     author: Mapped["User"] = relationship("User", back_populates="news")
 
 
-class NewsSchema(BaseModel):
+class CreateNewsSchema(BaseModel):
+    body: dict
+
+    model_config = {"from_attributes": True}
+
+
+class UpdateNewsSchema(CreateNewsSchema):
+    is_published: bool
+
+
+class NewsSchema(UpdateNewsSchema):
     id: int
+    author_id: int
     created_at: datetime
     updated_at: datetime
-    body: str
-    is_published: bool
-    author_id: int
 
     model_config = {"from_attributes": True}

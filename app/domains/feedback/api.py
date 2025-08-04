@@ -50,7 +50,7 @@ async def get_contact_messages(
 
 
 class AnswerContactMessageResponses(Responses):
-    CONTACT_MESSAGE_NOT_FOUND = 404, "There is no contact message with provided id"
+    CONTACT_MESSAGE_NOT_FOUND = 404, "Contact message with provided id not found"
 
 
 class AnswerContactMessageBody(BaseModel):
