@@ -4,15 +4,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Path, UploadFile
 from fastapi_exception_responses import Responses
 
-from app.core.config import BASE_DIR
+from app.core.config import BASE_DIR, settings
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
+from app.core.utils.save_file import save_file
 from app.domains.auth.utils import CurrentUserDep
 from app.domains.users.filters import UsersFilter
 from app.domains.users.models import UpdateUserSchema, UserSchema
 from app.domains.users.services import UserServiceDep
-from app.domains.users.utils import write_file
 
 router = APIRouter(tags=["users"], prefix="/users")
 
@@ -105,7 +105,7 @@ async def upload_user_avatar(
     if not file.content_type.startswith("image/"):
         raise SetAvatarResponses.INVALID_CONTENT_TYPE
 
-    relative_filepath = await write_file(file)
+    relative_filepath = await save_file(file, settings.MEDIA_STORAGE_PATH)
 
     try:
         await user_service.set_user_avatar(user_id=user_id, avatar_path=relative_filepath)
@@ -113,7 +113,7 @@ async def upload_user_avatar(
         os.remove(BASE_DIR / relative_filepath)
         raise SetAvatarResponses.USER_NOT_FOUND
 
-    return {"path": relative_filepath}
+    return {"path": settings.NEWS_UPLOADS_PATH / relative_filepath}
 
 
 class DeleteUserAvatarResponses(Responses):

@@ -1,17 +1,18 @@
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
 
-from app.core.config import settings
+from app.core.config import BASE_DIR
 
 
-async def write_file(file: UploadFile) -> str:
+async def save_file(file: UploadFile, path: Path) -> str:
     ext = file.filename.split(".")[-1]
     filename = f"{uuid4().hex}.{ext}"
-    filepath = settings.MEDIA_STORAGE_PATH / filename
+    filepath = BASE_DIR / path / filename
 
     with open(filepath, "wb") as f:
         content = await file.read()
         f.write(content)
 
-    return f"media/{filename}"
+    return f"{path}/{filename}"

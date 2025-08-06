@@ -37,7 +37,8 @@ class Settings(BaseSettings):
 
     MEDIA_DIR_NAME: str = "media"
     MEDIA_API_PATH: str = "/api/media"
-    MEDIA_STORAGE_PATH: Path = BASE_DIR / "media"
+    MEDIA_STORAGE_PATH: Path = Path("media")
+    NEWS_UPLOADS_PATH: Path = MEDIA_STORAGE_PATH / "news_upload"
 
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
