@@ -31,7 +31,7 @@ class CreateNewsSchema(BaseModel):
 
 
 class UpdateNewsSchema(CreateNewsSchema):
-    is_published: bool
+    is_published: bool = True
 
 
 class NewsSchema(UpdateNewsSchema):

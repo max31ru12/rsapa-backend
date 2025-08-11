@@ -94,7 +94,9 @@ class SetAvatarResponses(Responses):
 
 
 @router.put(
-    "/{user_id}/avatar", summary="Upload user avatar image", status_code=201, responses=SetAvatarResponses.responses
+    "/{user_id}/avatar",
+    responses=SetAvatarResponses.responses,
+    summary="Upload user avatar image",
 )
 async def upload_user_avatar(
     user_service: UserServiceDep,
@@ -108,12 +110,12 @@ async def upload_user_avatar(
     relative_filepath = await save_file(file, settings.MEDIA_STORAGE_PATH)
 
     try:
-        await user_service.set_user_avatar(user_id=user_id, avatar_path=relative_filepath)
+        await user_service.set_user_avatar(user_id=user_id, avatar_path=str(relative_filepath))
     except ValueError:
         os.remove(BASE_DIR / relative_filepath)
         raise SetAvatarResponses.USER_NOT_FOUND
 
-    return {"path": settings.NEWS_UPLOADS_PATH / relative_filepath}
+    return {"path": relative_filepath.as_posix()}
 
 
 class DeleteUserAvatarResponses(Responses):

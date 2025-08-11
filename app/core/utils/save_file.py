@@ -6,7 +6,7 @@ from fastapi import UploadFile
 from app.core.config import BASE_DIR
 
 
-async def save_file(file: UploadFile, path: Path) -> str:
+async def save_file(file: UploadFile, path: Path) -> Path:
     ext = file.filename.split(".")[-1]
     filename = f"{uuid4().hex}.{ext}"
     filepath = BASE_DIR / path / filename
@@ -15,4 +15,4 @@ async def save_file(file: UploadFile, path: Path) -> str:
         content = await file.read()
         f.write(content)
 
-    return f"{path}/{filename}"
+    return Path(path / filename)

@@ -27,6 +27,13 @@ class NewsService:
                 raise ValueError("There is no such user with provided id")
             await self.uow.news_repository.update(news_id, update_data)
 
+    async def get_news_by_id(self, news_id: int) -> News:
+        async with self.uow:
+            news = await self.uow.news_repository.get_first_by_kwargs(id=news_id)
+            if news is None:
+                raise ValueError("There is no such user with provided id")
+            return news
+
 
 def get_news_service(
     uow: Annotated[NewsUnitOfWork, Depends(get_news_unit_of_work)],
