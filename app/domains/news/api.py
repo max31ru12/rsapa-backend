@@ -100,6 +100,19 @@ async def get_news_detail(
 ) -> NewsSchema:
     try:
         news = await news_service.get_news_by_id(news_id)
+        if news.is_deleted:
+            raise NewsNotFoundResponses.NEWS_NOT_FOUND
         return NewsSchema.from_orm(news)
+    except ValueError:
+        raise NewsNotFoundResponses.NEWS_NOT_FOUND
+
+
+@router.delete("/{news_id}", summary="Deletes news by id", responses=NewsNotFoundResponses.responses)
+async def delete_news(
+    news_id: Annotated[int, Path(...)],
+    news_service: NewsServiceDep,
+):
+    try:
+        await news_service.set_news_deleted(news_id)
     except ValueError:
         raise NewsNotFoundResponses.NEWS_NOT_FOUND

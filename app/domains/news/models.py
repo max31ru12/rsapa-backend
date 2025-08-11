@@ -23,6 +23,8 @@ class News(Base, UCIMixin):
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     author: Mapped["User"] = relationship("User", back_populates="news")
 
+    is_deleted: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
+
 
 class CreateNewsSchema(BaseModel):
     body: dict
@@ -32,6 +34,7 @@ class CreateNewsSchema(BaseModel):
 
 class UpdateNewsSchema(CreateNewsSchema):
     is_published: bool = True
+    is_deleted: bool = False
 
 
 class NewsSchema(UpdateNewsSchema):
@@ -40,4 +43,4 @@ class NewsSchema(UpdateNewsSchema):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "protected_namespaces": ()}

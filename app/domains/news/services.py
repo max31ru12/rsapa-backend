@@ -34,6 +34,13 @@ class NewsService:
                 raise ValueError("There is no such user with provided id")
             return news
 
+    async def set_news_deleted(self, news_id):
+        async with self.uow:
+            news = await self.uow.news_repository.get_first_by_kwargs(id=news_id)
+            if news is None:
+                raise ValueError("There is no such user with provided id")
+            await self.uow.news_repository.update(news_id, {"is_deleted": True})
+
 
 def get_news_service(
     uow: Annotated[NewsUnitOfWork, Depends(get_news_unit_of_work)],
