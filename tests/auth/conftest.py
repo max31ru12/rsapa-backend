@@ -19,7 +19,6 @@ def register_user_data(faker: Faker) -> dict[str, Any]:
         "lastname": faker.last_name(),
         "institution": faker.pystr(min_chars=2),
         "role": faker.pystr(min_chars=2),
-        "subscription_type_id": 1,
     }
 
 
@@ -44,7 +43,6 @@ async def test_user_with_data(
     user_data: dict[str | Any],
 ) -> [User, dict]:
     user_creation_data = user_data.copy()
-    user_creation_data.pop("subscription_type_id")
     user = await user_uow.user_repository.create(**user_creation_data)
 
     return user, user_data
@@ -56,7 +54,6 @@ async def test_user(
     user_data: dict[str | Any],
 ) -> User:
     user_creation_data = user_data.copy()
-    user_creation_data.pop("subscription_type_id")
     user = await user_uow.user_repository.create(**user_creation_data)
 
     return user

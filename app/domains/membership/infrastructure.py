@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database.base_repository import SQLAlchemyRepository
 from app.core.database.setup_db import session_getter
 from app.core.database.unit_of_work import SQLAlchemyUnitOfWork
-from app.domains.auth.models import SubscriptionType, UserSubscription
+from app.domains.membership.models import SubscriptionType, UserSubscription
 from app.domains.users.infrastructure import UserRepository
 
 

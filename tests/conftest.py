@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import TEST_DB_URL
 from app.core.database.setup_db import Base, session_getter
-from app.domains.auth.infrastructure import AuthUnitOfWork
-from app.domains.auth.models import SubscriptionType
+from app.domains.membership.infrastructure import AuthUnitOfWork
+from app.domains.membership.models import SubscriptionType
 from app.domains.users.infrastructure import UserUnitOfWork
 
 pytest_plugins = ("anyio",)
@@ -70,46 +70,39 @@ async def insert_test_data(
         session.add_all(
             [
                 SubscriptionType(
-                    name="Trainee Basic",
-                    type="TRAINEE",
-                    price_usd=10.00,
-                    duration=30,
-                    description="Monthly basic trainee plan",
-                ),
-                SubscriptionType(
-                    name="Trainee Standard",
-                    type="TRAINEE",
-                    price_usd=25.00,
-                    duration=90,
-                    description="Quarterly trainee plan",
-                ),
-                SubscriptionType(
-                    name="Trainee Premium",
-                    type="TRAINEE",
-                    price_usd=90.00,
+                    name="Active Member",
+                    type="ACTIVE",
+                    price_usd=20.00,
                     duration=365,
-                    description="Annual trainee plan",
+                    description="Any legally qualified Russian-speaking specialist (MD, DO, MBBS, PhD, or equivalent degree). practicing pathology in the united states",
                 ),
                 SubscriptionType(
-                    name="Adjunct Basic",
-                    type="ADJUNCT",
-                    price_usd=10.00,
-                    duration=30,
-                    description="Monthly basic adjunct plan",
-                ),
-                SubscriptionType(
-                    name="Adjunct Standard",
-                    type="ADJUNCT",
-                    price_usd=25.00,
-                    duration=90,
-                    description="Quarterly adjunct plan",
-                ),
-                SubscriptionType(
-                    name="Adjunct Premium",
-                    type="ADJUNCT",
-                    price_usd=90.00,
+                    name="Trainee Member",
+                    type="TRAINEE",
+                    price_usd=20.00,
                     duration=365,
-                    description="Annual adjunct plan",
+                    description="Russian-speaking residents or fellows in pathology or related disciplines in the United States.",
+                ),
+                SubscriptionType(
+                    name="Affiliate Member",
+                    type="AFFILIATE",
+                    price_usd=20.00,
+                    duration=365,
+                    description="Russian-speaking pathologists, scientists, researchers, or allied professionals interested in the field of pathology whose involvement is relevant and contributes meaningfully to the Society (non-voting).",
+                ),
+                SubscriptionType(
+                    name="Honorary Member",
+                    type="HONORARY",
+                    price_usd=20.00,
+                    duration=365,
+                    description="Individuals recognized fo exceptional service to the field of pathology or the Society (non-voting).",
+                ),
+                SubscriptionType(
+                    name="Pathway Member",
+                    type="PATHWAY",
+                    price_usd=20.00,
+                    duration=365,
+                    description="Russian-speaking individuals pursuing or transition into a medical career in the United States. This includes medical students and internationally trained medical graduates seeking mentorship and professional development as they prepare for pathology practice in the United States (non-voting).",
                 ),
             ]
         )

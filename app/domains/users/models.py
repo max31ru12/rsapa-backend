@@ -9,10 +9,10 @@ from sqlalchemy import Boolean, DateTime, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.setup_db import Base
-from app.domains.auth.models import UserSubscription
+from app.domains.membership.models import UserSubscription
 
 if TYPE_CHECKING:
-    from app.domains.auth.models import UserSubscription
+    from app.domains.membership.models import UserSubscription
     from app.domains.news.models import News
 
 

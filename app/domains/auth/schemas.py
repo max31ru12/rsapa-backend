@@ -9,7 +9,6 @@ class RegisterFormData(BaseModel):
     lastname: str = Field(min_length=2)
     institution: str = Field(min_length=2)
     role: str = Field(min_length=2)
-    subscription_type_id: int
 
     @model_validator(mode="after")
     def check_passwords_match(self):

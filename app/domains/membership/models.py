@@ -12,8 +12,11 @@ if TYPE_CHECKING:
 
 
 class SubscriptionTypeEnum(Enum):
+    ACTIVE = "ACTIVE"
     TRAINEE = "TRAINEE"
-    ADJUNCT = "ADJUNCT"
+    AFFILIATE = "AFFILIATE"
+    HONORARY = "HONORARY"
+    PATHWAY = "PATHWAY"
 
 
 class SubscriptionType(Base):
