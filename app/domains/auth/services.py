@@ -1,13 +1,10 @@
-from typing import Annotated, Sequence
+from typing import Annotated
 
 from fastapi import Depends
 from fastapi_exception_responses import Responses
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domains.auth.infrastructure import AuthUnitOfWork, get_auth_unit_of_work
 from app.domains.auth.schemas import RegisterFormData
-from app.domains.membership.infrastructure import AuthUnitOfWork, get_auth_unit_of_work
-from app.domains.membership.models import SubscriptionType
 
 
 class RegisterResponses(Responses):
@@ -34,12 +31,6 @@ class AuthService:
             user = await self.uow.user_repository.create(**user_data)
 
         return user
-
-
-async def get_subscriptions(session: AsyncSession) -> Sequence[SubscriptionType]:
-    async with session:
-        result = await session.execute(select(SubscriptionType))
-        return result.scalars().all()
 
 
 def get_auth_service(uow: Annotated[AuthUnitOfWork, Depends(get_auth_unit_of_work)]) -> AuthService:

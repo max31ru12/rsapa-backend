@@ -1,8 +1,12 @@
-from datetime import date
-from enum import Enum
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
-from sqlalchemy import Enum as SQLAEnum, ForeignKey, Numeric, func
+from datetime import date
+from decimal import Decimal
+from enum import Enum
+from typing import TYPE_CHECKING, List
+
+from pydantic import BaseModel
+from sqlalchemy import Enum as SQLAEnum, ForeignKey, Numeric, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.setup_db import Base
@@ -11,7 +15,7 @@ if TYPE_CHECKING:
     from app.domains.users.models import User
 
 
-class SubscriptionTypeEnum(Enum):
+class MembershipTypeEnum(Enum):
     ACTIVE = "ACTIVE"
     TRAINEE = "TRAINEE"
     AFFILIATE = "AFFILIATE"
@@ -19,20 +23,23 @@ class SubscriptionTypeEnum(Enum):
     PATHWAY = "PATHWAY"
 
 
-class SubscriptionType(Base):
-    __tablename__ = "subscription_types"
+class Membership(Base):
+    __tablename__ = "memberships"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     name: Mapped[str] = mapped_column(nullable=False)
-    type: Mapped[SubscriptionTypeEnum] = mapped_column(
-        SQLAEnum(SubscriptionTypeEnum, name="subscription_type_enum"), nullable=False
+    type: Mapped[MembershipTypeEnum] = mapped_column(
+        SQLAEnum(MembershipTypeEnum, name="membership_type_enum"),
+        nullable=False,
     )
-    price_usd: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    duration: Mapped[int] = mapped_column(nullable=False, default=30)
+    price_usd: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    duration: Mapped[int] = mapped_column(nullable=False, default=365)
     description: Mapped[str] = mapped_column(nullable=True)
 
-    subscriptions: Mapped["UserSubscription"] = relationship(back_populates="subscription_type")
+    is_purchasable: Mapped[bool] = mapped_column(nullable=False, default=True, server_default=text("true"))
+
+    subscriptions: Mapped[List["UserSubscription"]] = relationship(back_populates="membership")
 
 
 class UserSubscription(Base):
@@ -46,5 +53,20 @@ class UserSubscription(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     user: Mapped["User"] = relationship(back_populates="subscriptions")
 
-    subscription_type_id: Mapped[id] = mapped_column(ForeignKey("subscription_types.id"))
-    subscription_type: Mapped[SubscriptionType] = relationship(back_populates="subscriptions")
+    # Исправлено: тип, имя столбца и имя таблицы в FK
+    membership_id: Mapped[int] = mapped_column(ForeignKey("memberships.id"))
+    membership: Mapped[Membership] = relationship(back_populates="subscriptions")
+
+
+class MembershipSchema(BaseModel):
+    id: int
+    name: str
+    type: MembershipTypeEnum
+    price_usd: float
+    duration: int
+    description: str
+    is_purchasable: bool
+
+    model_config = {
+        "from_attributes": True,
+    }

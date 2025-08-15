@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     MAIL_PORT: int
     MAIL_SERVER: str
 
+    STRIPE_API_KEY: str
+    STRIPE_WEBHOOK_SECRET_KEY: str
+
+    FRONTEND_DOMAIN: str
+
     class ConfigDict:
         env: Path = BASE_DIR / ".env"
 

@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import (
 from app.core.config import TEST_DB_URL
 from app.core.database.setup_db import Base, session_getter
 from app.domains.membership.infrastructure import AuthUnitOfWork
-from app.domains.membership.models import SubscriptionType
+from app.domains.membership.models import Membership
 from app.domains.users.infrastructure import UserUnitOfWork
 
 pytest_plugins = ("anyio",)
@@ -69,35 +69,35 @@ async def insert_test_data(
     async with async_session() as session:
         session.add_all(
             [
-                SubscriptionType(
+                Membership(
                     name="Active Member",
                     type="ACTIVE",
                     price_usd=20.00,
                     duration=365,
                     description="Any legally qualified Russian-speaking specialist (MD, DO, MBBS, PhD, or equivalent degree). practicing pathology in the united states",
                 ),
-                SubscriptionType(
+                Membership(
                     name="Trainee Member",
                     type="TRAINEE",
                     price_usd=20.00,
                     duration=365,
                     description="Russian-speaking residents or fellows in pathology or related disciplines in the United States.",
                 ),
-                SubscriptionType(
+                Membership(
                     name="Affiliate Member",
                     type="AFFILIATE",
                     price_usd=20.00,
                     duration=365,
                     description="Russian-speaking pathologists, scientists, researchers, or allied professionals interested in the field of pathology whose involvement is relevant and contributes meaningfully to the Society (non-voting).",
                 ),
-                SubscriptionType(
+                Membership(
                     name="Honorary Member",
                     type="HONORARY",
                     price_usd=20.00,
                     duration=365,
                     description="Individuals recognized fo exceptional service to the field of pathology or the Society (non-voting).",
                 ),
-                SubscriptionType(
+                Membership(
                     name="Pathway Member",
                     type="PATHWAY",
                     price_usd=20.00,

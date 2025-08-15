@@ -2,10 +2,8 @@ services:
   rsapa_database:
     container_name: rsapa_database
     image: postgres:alpine
-    environment:
-      - POSTGRES_USER=${DB_USER:-test}
-      - POSTGRES_DB=${DB_NAME:-test}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-test}
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./compose/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -20,7 +18,6 @@ services:
     networks:
       - default
 
-
   rsapa_backend:
     container_name: rsapa_backend
     build:
@@ -31,22 +28,34 @@ services:
     env_file:
       - .env
     environment:
-      - DB_HOST=${DB_HOST:-rsapa_database}
-      - DEV_MODE=${DEV_MODE:-true}
-      - SECRET_KEY=${SECRET_KEY}
-      - ALGORITHM=${ALGORITHM}
+      STRIPE_WEBHOOK_SECRET_KEY: /run/stripe/webhook_secret
     ports:
       - "8000:8000"
     restart: unless-stopped
     volumes:
+      - stripe_runtime:/run/stripe
       - ./app/:/app/app/
       - ./alembic/:/app/alembic
+    networks:
+      - default
+
+  stripe-listen:
+    container_name: stripe_listen
+    build:
+      context: .
+      dockerfile: compose/stripe/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - stripe_runtime:/run/stripe
+    restart: unless-stopped
     networks:
       - default
 
 
 volumes:
   postgres_data:
+  stripe_runtime:
 
 
 networks:

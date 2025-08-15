@@ -16,9 +16,13 @@ COPY pyproject.toml poetry.lock ./
 
 RUN poetry install --without dev --no-root
 
+COPY compose/backend/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 COPY ./alembic ./
 COPY alembic.ini ./
 
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0"]
+#CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 EXPOSE 8000
