@@ -1,3 +1,4 @@
+import os
 from os import getenv
 from pathlib import Path
 
@@ -49,8 +50,6 @@ class Settings(BaseSettings):
     STRIPE_API_KEY: str
     STRIPE_WEBHOOK_SECRET_KEY: str
 
-    FRONTEND_DOMAIN: str
-
     class ConfigDict:
         env: Path = BASE_DIR / ".env"
 
@@ -73,3 +72,23 @@ MAIL_CONFIG = ConnectionConfig(
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
 )
+
+
+MEMBERSHIP_STRIPE_IDS = {
+    "ACTIVE": {
+        "product_id": os.getenv("ACTIVE_MEMBERSHIP_ID"),
+        "price_id": os.getenv("ACTIVE_MEMBERSHIP_PRICE_ID"),
+    },
+    "TRAINEE": {
+        "product_id": os.getenv("TRAINEE_MEMBERSHIP_ID"),
+        "price_id": os.getenv("TRAINEE_MEMBERSHIP_PRICE_ID"),
+    },
+    "PATHWAY": {
+        "product_id": os.getenv("PATHWAY_MEMBERSHIP_ID"),
+        "price_id": os.getenv("PATHWAY_MEMBERSHIP_PRICE_ID"),
+    },
+    "HONORARY": {
+        "product_id": os.getenv("HONORARY_MEMBERSHIP_ID"),
+        "price_id": os.getenv("HONORARY_MEMBERSHIP_PRICE_ID"),
+    },
+}

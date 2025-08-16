@@ -1,3 +1,4 @@
+import time
 from typing import Annotated
 
 import stripe
@@ -19,8 +20,8 @@ router = APIRouter(prefix="/membership", tags=["Membership"])
 async def get_all_memberships(
     service: MembershipServiceDep,
 ) -> list[MembershipSchema]:
-    subscription_list, _ = await service.get_all_memberships()
-    data = [MembershipSchema.from_orm(item) for item in subscription_list]
+    membership_list, _ = await service.get_all_memberships()
+    data = [MembershipSchema.from_orm(item) for item in membership_list]
     return data
 
 
@@ -29,8 +30,8 @@ async def get_membership_detail(
     membership_id: Annotated[int, Path(...)],
     service: MembershipServiceDep,
 ) -> MembershipSchema:
-    subscription_type = await service.get_membership_by_kwargs(id=membership_id)
-    return MembershipSchema.from_orm(subscription_type)
+    membership_type = await service.get_membership_by_kwargs(id=membership_id)
+    return MembershipSchema.from_orm(membership_type)
 
 
 @router.post("/{membership_id}/checkout-sessions")
@@ -40,6 +41,10 @@ async def create_checkout_session(
     current_user: CurrentUserDep,  # noqa Auth dependency
 ):
     membership = await service.get_membership_by_kwargs(id=membership_id)
+    expires_timedelta_seconds = 30 * 60
+
+    # metadata = {"membership_id": membership.id}
+
     session = stripe.checkout.Session.create(
         mode="payment",
         line_items=[
@@ -54,9 +59,11 @@ async def create_checkout_session(
                 "quantity": 1,
             }
         ],
+        metadata={},
         customer_email=current_user.email,
         success_url="http://localhost:3000/membership/stripe/success/{CHECKOUT_SESSION_ID}",
-        cancel_url="http://localhost:4242/cancel",
+        # cancel_url="http://localhost:4242/cancel",
+        expires_at=int(time.time()) + expires_timedelta_seconds,
     )
 
     return session.url
@@ -65,6 +72,7 @@ async def create_checkout_session(
 @router.post("/stripe/webhook")
 async def fulfill_checkout(
     request: Request,
+    service: MembershipServiceDep,
     stripe_signature: str = Header(alias="Stripe-Signature"),
 ):
     payload = await request.body()
@@ -79,6 +87,8 @@ async def fulfill_checkout(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid signature")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    await service.create_payment()
 
     # Для теста просто возвращаем подтверждение
     return {"status": "success", "event_type": event["type"]}

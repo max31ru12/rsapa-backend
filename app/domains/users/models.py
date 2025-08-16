@@ -9,10 +9,9 @@ from sqlalchemy import Boolean, DateTime, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.setup_db import Base
-from app.domains.membership.models import UserSubscription
 
 if TYPE_CHECKING:
-    from app.domains.membership.models import UserSubscription
+    from app.domains.membership.models import MembershipPayment, UserMembership
     from app.domains.news.models import News
 
 
@@ -34,8 +33,9 @@ class User(Base):
     institution: Mapped[str] = mapped_column()
     role: Mapped[str] = mapped_column()
 
-    subscriptions: Mapped[list["UserSubscription"]] = relationship(back_populates="user")
     news: Mapped[list["News"]] = relationship("News", back_populates="author")
+    memberships: Mapped[list["UserMembership"]] = relationship("UserMembership", back_populates="user")
+    membership_payments: Mapped[list["MembershipPayment"]] = relationship("MembershipPayment", back_populates="user")
 
     _password: Mapped[str] = mapped_column()
     avatar_path: Mapped[str] = mapped_column(nullable=True, unique=True)
