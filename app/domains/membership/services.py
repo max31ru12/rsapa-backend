@@ -22,6 +22,10 @@ class MembershipService:
         async with self.uow:
             return await self.uow.membership_payment_repository.create(**kwargs)
 
+    async def update_membership(self, membership_id: int, update_data: dict) -> MembershipPayment:
+        async with self.uow:
+            return await self.uow.membership_repository.update(membership_id, update_data)
+
 
 def get_membership_service(
     uow: Annotated[MembershipUnitOfWork, Depends(get_membership_unit_of_work)],

@@ -84,8 +84,8 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
         self.session.add(instance)
         return instance
 
-    async def update(self, object_id: int, update_data: dict[str | Any]) -> Result[int]:
-        return (
+    async def update(self, object_id: int, update_data: dict[str | Any]) -> T:
+        result = (
             (
                 await self.session.execute(
                     update(self.model).where(self.model.id == object_id).values(**update_data).returning(self.model)
@@ -94,6 +94,11 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
             .scalars()
             .first()
         )
+
+        if result is None:
+            raise ValueError("There is no such record with provided id")
+
+        return result
 
     async def remove(self, row_id: int) -> Result[int]:
         return await self.session.execute(delete(self.model).where(self.model.id == row_id).returning(self.model.id))

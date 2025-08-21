@@ -23,7 +23,7 @@ class LoginForm(BaseModel):
     remember: bool = False
 
     class Config:
-        json_schema_extra = {"examples": [{"email": "test@mail.com", "password": "test", "remember": True}]}
+        json_schema_extra = {"examples": [{"email": "admin@mail.com", "password": "admin", "remember": True}]}
 
 
 class AccessToken(BaseModel):
