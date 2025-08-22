@@ -66,14 +66,14 @@ class UserMembership(Base, UCIMixin):
     )
     stripe_subscription_id: Mapped[str] = mapped_column(nullable=True)
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
     user: Mapped["User"] = relationship("User", back_populates="memberships")
 
     membership_type_id: Mapped[int] = mapped_column(ForeignKey("membership_types.id"), nullable=False)
     membership_type: Mapped["MembershipType"] = relationship("MembershipType", back_populates="user_memberships")
 
 
-class UpdateMembershipSchema(BaseModel):
+class UpdateMembershipTypeSchema(BaseModel):
     type: Optional[MembershipTypeEnum] = Field(None)
     description: Optional[str] = Field(None)
     is_purchasable: Optional[bool] = Field(None)
@@ -81,7 +81,7 @@ class UpdateMembershipSchema(BaseModel):
     price_usd: Optional[float] = Field(None)
 
 
-class MembershipSchema(BaseModel):
+class MembershipTypeSchema(BaseModel):
     id: int
     name: str
     type: MembershipTypeEnum
@@ -90,6 +90,22 @@ class MembershipSchema(BaseModel):
     description: str
     is_purchasable: bool
     stripe_price_id: str
+
+    model_config = {
+        "from_attributes": True,
+    }
+
+
+class UserMembershipSchema(BaseModel):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    start_date: datetime
+    end_date: datetime
+    status: MembershipStatusEnum
+    stripe_subscription_id: str
+    user_id: int
+    membership_type_id: int
 
     model_config = {
         "from_attributes": True,

@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import stripe
@@ -11,56 +11,61 @@ from starlette.requests import Request
 
 from app.core.config import settings
 from app.domains.auth.utils import AdminUserDep, CurrentUserDep
-from app.domains.membership.models import MembershipSchema, MembershipStatusEnum, UpdateMembershipSchema
+from app.domains.membership.dependencies import CurrentUserMembershipDep
+from app.domains.membership.models import MembershipStatusEnum, MembershipTypeSchema, UpdateMembershipTypeSchema
 from app.domains.membership.schemas import CheckoutSessionSummaryResponse
 from app.domains.membership.services import MembershipServiceDep
 
 stripe.api_key = settings.STRIPE_API_KEY
-router = APIRouter(prefix="/memberships", tags=["Membership"])
+router = APIRouter(prefix="", tags=["Membership types"])
 
 
-@router.get("")
+@router.get("/membership-types")
 async def get_all_memberships(
     service: MembershipServiceDep,
-) -> list[MembershipSchema]:
+) -> list[MembershipTypeSchema]:
     membership_list, _ = await service.get_all_membership_types()
-    data = [MembershipSchema.from_orm(item) for item in membership_list]
+    data = [MembershipTypeSchema.from_orm(item) for item in membership_list]
     return data
 
 
-@router.get("/{membership_id}")
+@router.get("/membership-types/{membership_type_id}")
 async def get_membership_detail(
-    membership_id: Annotated[int, Path(...)],
+    membership_type_id: Annotated[int, Path(...)],
     service: MembershipServiceDep,
-) -> MembershipSchema:
-    membership_type = await service.get_membership_type_by_kwargs(id=membership_id)
-    return MembershipSchema.from_orm(membership_type)
+) -> MembershipTypeSchema:
+    membership_type = await service.get_membership_type_by_kwargs(id=membership_type_id)
+    return MembershipTypeSchema.from_orm(membership_type)
 
 
 class MembershipNotFoundResponses(Responses):
     MEMBERSHIP_NOT_FOUND = 404, "Membership not found"
 
 
-@router.put("/{membership_id}", responses=MembershipNotFoundResponses.responses, summary="Update membership")
-async def update_membership_stripe_price_id(
-    membership_id: Annotated[int, Path(...)],
-    update_data: UpdateMembershipSchema,
+@router.put(
+    "/membership-types/{membership_type_id}",
+    responses=MembershipNotFoundResponses.responses,
+    summary="Update membership type",
+)
+async def update_membership_type(
+    membership_type_id: Annotated[int, Path(...)],
+    update_data: UpdateMembershipTypeSchema,
     service: MembershipServiceDep,
     admin: AdminUserDep,
-) -> MembershipSchema:
+) -> MembershipTypeSchema:
     try:
-        return await service.update_membership_type(membership_id, update_data.model_dump(exclude_unset=True))
+        return await service.update_membership_type(membership_type_id, update_data.model_dump(exclude_unset=True))
     except ValueError:
         raise MembershipNotFoundResponses.MEMBERSHIP_NOT_FOUND
 
 
-@router.post("/{membership_id}/checkout-sessions")
+@router.post("/membership-types/{membership_type_id}/checkout-sessions")
 async def create_checkout_session(
-    membership_id: Annotated[int, Path(...)],
+    membership_type_id: Annotated[int, Path(...)],
     service: MembershipServiceDep,
     current_user: CurrentUserDep,  # noqa Auth dependency
 ):
-    membership_type = await service.get_membership_type_by_kwargs(id=membership_id)
+    membership_type = await service.get_membership_type_by_kwargs(id=membership_type_id)
     checkout_expires_at = int(time.time()) + 30 * 60
 
     user_membership = await service.create_membership(
@@ -99,6 +104,7 @@ async def create_checkout_session(
 async def fulfill_checkout(
     request: Request,
     service: MembershipServiceDep,
+    membership: CurrentUserMembershipDep,
     stripe_signature: str = Header(alias="Stripe-Signature"),
 ) -> None:
     payload = await request.body()
@@ -134,11 +140,20 @@ async def fulfill_checkout(
 
     elif event.type == "customer.subscription.updated":
         # Обновление подписки
-        pass
+        await service.update_membership(
+            data["id"],
+            {
+                "status": data["status"],
+                "end_date": datetime.fromtimestamp(data["current_period_end"], tz=timezone.utc)
+                if data.get("current_period_end")
+                else None,
+            },
+        )
 
     elif event.type in ("customer.subscription.deleted", "invoice.payment_failed"):
         # Удаление или неоплата подписки
-        pass
+        subscription = await service.get_membership_by_kwargs(stripe_subscription_id=MembershipStatusEnum(data["id"]))
+        await service.update_membership(subscription.id, {"status": MembershipStatusEnum.CANCELED})
 
 
 class GetCheckoutSessionResponses(Responses):
