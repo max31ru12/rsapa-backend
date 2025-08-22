@@ -7,5 +7,5 @@ printf "%s" "$SECRET" > /run/stripe/webhook_secret
 
 exec stripe listen \
   --api-key "$STRIPE_API_KEY" \
-  --forward-to "http://${BACKEND_DOMAIN}:${BACKEND_PORT}/api/membership/stripe/webhook" \
+  --forward-to "http://${BACKEND_DOMAIN}:${BACKEND_PORT}/api/memberships/stripe/webhook" \
   --events "$STRIPE_EVENTS"

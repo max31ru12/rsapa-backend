@@ -38,72 +38,39 @@ class MembershipType(Base):
     duration: Mapped[int] = mapped_column(nullable=False, default=365)
     description: Mapped[str] = mapped_column(nullable=True)
     is_purchasable: Mapped[bool] = mapped_column(nullable=False, default=True, server_default=text("true"))
-    stripe_price_id: Mapped[str] = mapped_column(nullable=False, server_default="price_id_placeholder")
+    stripe_price_id: Mapped[str] = mapped_column(nullable=True)
 
-    payments: Mapped[list["MembershipPayment"]] = relationship("MembershipPayment", back_populates="membership_type")
     user_memberships: Mapped[list["UserMembership"]] = relationship("UserMembership", back_populates="membership_type")
 
 
 class MembershipStatusEnum(Enum):
-    ACTIVE = "ACTIVE"
-    EXPIRED = "EXPIRED"
-    CANCELED = "CANCELED"
-    PENDING = "PENDING"
+    INCOMPLETE = "incomplete"  # подписка создана, первый платеж не прошел
+    INCOMPLETE_EXPIRED = "incomplete_expired"  # Подписка не активировалась, тк первый платеж не прошел
+    TRIALING = "trialing"  # Пробный период
+    ACTIVE = "active"  # Активна
+    PAST_DUE = "past_due"  # Подписка активна, но последний платеж не прошел
+    CANCELED = "canceled"  # Отменена (только после оплаченного периода)
+    UNPAID = "unpaid"  # не пытается больше взять оплату
 
 
 class UserMembership(Base, UCIMixin):
     __tablename__ = "users_memberships"
 
     start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
-    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
 
     status: Mapped[MembershipStatusEnum] = mapped_column(
-        SQLAEnum(MembershipStatusEnum, name="membership_type_enum"),
+        SQLAEnum(MembershipStatusEnum, name="users_membership_enum"),
         nullable=False,
-        default=MembershipStatusEnum.PENDING,
+        default=MembershipStatusEnum.INCOMPLETE,
     )
+    stripe_subscription_id: Mapped[str] = mapped_column(nullable=True)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     user: Mapped["User"] = relationship("User", back_populates="memberships")
 
     membership_type_id: Mapped[int] = mapped_column(ForeignKey("membership_types.id"), nullable=False)
     membership_type: Mapped["MembershipType"] = relationship("MembershipType", back_populates="user_memberships")
-
-    # unique гарантирует связь 1 к 1
-    payment_id: Mapped[int] = mapped_column(
-        ForeignKey("membership_payments.id"),
-        unique=True,
-        nullable=False,
-    )
-    payment: Mapped["MembershipPayment"] = relationship("MembershipPayment", back_populates="payed_membership")
-
-
-class MembershipPayment(Base):
-    __tablename__ = "membership_payments"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, nullable=False)
-    status: Mapped[str] = mapped_column()
-
-    customer_email: Mapped[str] = mapped_column(nullable=False)
-    customer_name: Mapped[str] = mapped_column(nullable=False)
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=func.now(), server_default=func.now(), nullable=False
-    )
-
-    amount_total: Mapped[int] = mapped_column()  # cents
-    currency: Mapped[str] = mapped_column()
-
-    presentment_amount: Mapped[int | None] = mapped_column()
-    presentment_currency: Mapped[str | None] = mapped_column()
-
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    user: Mapped["User"] = relationship("User", back_populates="membership_payments")
-
-    membership_type_id: Mapped[int] = mapped_column(ForeignKey("membership_types.id"))
-    membership_type: Mapped["MembershipType"] = relationship("MembershipType", back_populates="payments")
-
-    payed_membership = relationship("UserMembership", back_populates="payment")
 
 
 class UpdateMembershipSchema(BaseModel):

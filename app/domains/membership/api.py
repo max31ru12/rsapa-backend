@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timedelta
 from typing import Annotated
 
 import stripe
@@ -10,18 +11,19 @@ from starlette.requests import Request
 
 from app.core.config import settings
 from app.domains.auth.utils import AdminUserDep, CurrentUserDep
-from app.domains.membership.models import MembershipSchema, UpdateMembershipSchema
+from app.domains.membership.models import MembershipSchema, MembershipStatusEnum, UpdateMembershipSchema
+from app.domains.membership.schemas import CheckoutSessionSummaryResponse
 from app.domains.membership.services import MembershipServiceDep
 
 stripe.api_key = settings.STRIPE_API_KEY
-router = APIRouter(prefix="/membership", tags=["Membership"])
+router = APIRouter(prefix="/memberships", tags=["Membership"])
 
 
 @router.get("")
 async def get_all_memberships(
     service: MembershipServiceDep,
 ) -> list[MembershipSchema]:
-    membership_list, _ = await service.get_all_memberships()
+    membership_list, _ = await service.get_all_membership_types()
     data = [MembershipSchema.from_orm(item) for item in membership_list]
     return data
 
@@ -31,7 +33,7 @@ async def get_membership_detail(
     membership_id: Annotated[int, Path(...)],
     service: MembershipServiceDep,
 ) -> MembershipSchema:
-    membership_type = await service.get_membership_by_kwargs(id=membership_id)
+    membership_type = await service.get_membership_type_by_kwargs(id=membership_id)
     return MembershipSchema.from_orm(membership_type)
 
 
@@ -47,7 +49,7 @@ async def update_membership_stripe_price_id(
     admin: AdminUserDep,
 ) -> MembershipSchema:
     try:
-        return await service.update_membership(membership_id, update_data.model_dump(exclude_unset=True))
+        return await service.update_membership_type(membership_id, update_data.model_dump(exclude_unset=True))
     except ValueError:
         raise MembershipNotFoundResponses.MEMBERSHIP_NOT_FOUND
 
@@ -58,36 +60,36 @@ async def create_checkout_session(
     service: MembershipServiceDep,
     current_user: CurrentUserDep,  # noqa Auth dependency
 ):
-    membership = await service.get_membership_by_kwargs(id=membership_id)
-    expires_at = int(time.time()) + 30 * 60
-    unit_amount = int(membership.price_usd * 100)
+    membership_type = await service.get_membership_type_by_kwargs(id=membership_id)
+    checkout_expires_at = int(time.time()) + 30 * 60
+
+    user_membership = await service.create_membership(
+        status=MembershipStatusEnum.INCOMPLETE,
+        end_date=datetime.utcnow() + timedelta(days=365),
+        user_id=current_user.id,
+        membership_type_id=membership_type.id,
+    )
 
     metadata = {
-        "membership_type_id": membership.id,
-        "user_id": current_user.id,
+        "membership_type_id": str(membership_type.id),
+        "user_id": str(current_user.id),
+        "user_membership_id": str(user_membership.id),
     }
 
     session = stripe.checkout.Session.create(
-        mode="payment",
+        mode="subscription",
         line_items=[
             {
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {
-                        "name": membership.name,
-                    },
-                    "unit_amount": unit_amount,
-                },
+                "price": membership_type.stripe_price_id,
                 "quantity": 1,
             }
         ],
-        payment_intent_data={
-            "metadata": metadata,
-        },
+        metadata=metadata,
+        subscription_data={"metadata": metadata},
         customer_email=current_user.email,
-        success_url="http://localhost:3000/membership/stripe/success/{CHECKOUT_SESSION_ID}",
-        # cancel_url="http://localhost:4242/cancel",
-        expires_at=expires_at,
+        success_url="http://localhost:3000/payment/membership?success=true&session_id={CHECKOUT_SESSION_ID}",
+        cancel_url="http://localhost:3000/payment/membership?canceled=true",
+        expires_at=checkout_expires_at,
     )
 
     return session.url
@@ -98,7 +100,7 @@ async def fulfill_checkout(
     request: Request,
     service: MembershipServiceDep,
     stripe_signature: str = Header(alias="Stripe-Signature"),
-):
+) -> None:
     payload = await request.body()
 
     try:
@@ -112,27 +114,78 @@ async def fulfill_checkout(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    # Платеж в сессии, для подписки приходят события:
-    if event.type == "payment_intent.succeeded" or event.type == "invoice.payment_succeeded":
-        # payment_intent = event.data.object
+    data = event["data"]["object"]
+    metadata = data.metadata
+
+    if event.type == "checkout.session.completed":
+        subscription_id = data["subscription"]
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        user_membership_id = int(metadata["user_membership_id"])
+
+        await service.update_membership(
+            user_membership_id,
+            {
+                "status": MembershipStatusEnum(subscription.status),
+                "stripe_subscription_id": subscription_id,
+            },
+        )
+
+        return
+
+    elif event.type == "customer.subscription.updated":
+        # Обновление подписки
         pass
 
-    # Банк отклоняет операцию, для подписки вызываются события:
-    # 1. payment_intent.failed
-    # 2. invoice.payment_failed
-    elif event.type == "payment_intent.failed" or event.type == "invoice.payment_failed":
+    elif event.type in ("customer.subscription.deleted", "invoice.payment_failed"):
+        # Удаление или неоплата подписки
         pass
 
-    else:
-        pass
 
-        # payment = await service.create_payment(
-        #     **metadata,
-        #     created_at=created_at,
-        #     status=checkout_status,
-        #     presentment_amount=presentment_amount,
-        #     presentment_currency=presentment_currency,
-        # )
+class GetCheckoutSessionResponses(Responses):
+    NOT_A_SUBSCRIPTION_SESSION = 400, "Not a subscription session"
+    FORBIDDEN = 403, "Forbidden"
 
-    # Для теста просто возвращаем подтверждение
-    return {"status": "success", "event_type": event["type"]}
+
+@router.get(
+    "/checkout-sessions/{session_id}",
+    responses=GetCheckoutSessionResponses.responses,
+    summary="Retrieve a checkout session summary by id,",
+)
+async def get_session_summary_by_id(
+    session_id: Annotated[str, Path(...)],
+    service: MembershipServiceDep,
+    current_user: CurrentUserDep,
+) -> CheckoutSessionSummaryResponse:
+    session = stripe.checkout.Session.retrieve(session_id, expand=["subscription", "invoice", "line_items", "customer"])
+
+    if session["mode"] != "subscription":
+        raise GetCheckoutSessionResponses.NOT_A_SUBSCRIPTION_SESSION
+
+    metadata = dict(session.get("metadata") or {})
+    user_membership_id = int(metadata["user_membership_id"])
+    user_membership = await service.get_membership_by_kwargs(id=user_membership_id)
+
+    if user_membership.user_id != current_user.id:
+        raise GetCheckoutSessionResponses.FORBIDDEN
+
+    stripe_subscription = session["subscription"]
+    membership_type = await service.get_membership_type_by_kwargs(id=user_membership.membership_type_id)
+
+    return CheckoutSessionSummaryResponse(
+        membership={
+            "id": str(user_membership.id),
+            "name": str(membership_type.name),
+            "type": str(membership_type.type),
+            "end_date": str(user_membership.end_date),
+            "status_db": str(user_membership.status),
+        },
+        subscription={
+            "id": str(stripe_subscription["id"]),
+            "status": str(stripe_subscription["status"]),
+        },
+        payment={
+            "amount_total": str(session.get("amount_total")),
+            "currency": str(session.get("currency")),
+            "invoice_id": str(session.get("invoice")),
+        },
+    )

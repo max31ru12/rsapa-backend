@@ -1,92 +1,43 @@
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from datetime import datetime
+from enum import Enum
+from typing import Optional
 
-
-class AmountDetails(BaseModel):
-    tip: Dict[str, Any]
-
-
-class CardOptions(BaseModel):
-    installments: Optional[Any]
-    mandate_options: Optional[Any]
-    network: Optional[str]
-    request_three_d_secure: Optional[str]
+from pydantic import BaseModel, Field
 
 
-class PaymentMethodOptions(BaseModel):
-    card: Optional[CardOptions]
+class SubscriptionStatusEnum(str, Enum):
+    INCOMPLETE = "incomplete"
+    INCOMPLETE_EXPIRED = "incomplete_expired"
+    TRIALING = "trialing"
+    ACTIVE = "active"
+    PAST_DUE = "past_due"
+    CANCELED = "canceled"
+    UNPAID = "unpaid"
 
 
-class PresentmentDetails(BaseModel):
-    presentment_amount: int
-    presentment_currency: str
-
-
-class PaymentIntentObject(BaseModel):
-    id: str
-    object: str
-    amount: int
-    amount_capturable: int
-    amount_details: AmountDetails
-    amount_received: int
-    application: Optional[Any]
-    application_fee_amount: Optional[int]
-    automatic_payment_methods: Optional[Any]
-    canceled_at: Optional[int]
-    cancellation_reason: Optional[str]
-    capture_method: Optional[str]
-    client_secret: Optional[str]
-    confirmation_method: Optional[str]
-    created: int
-    currency: str
-    customer: Optional[str]
-    description: Optional[str]
-    excluded_payment_method_types: Optional[List[str]]
-    last_payment_error: Optional[Any]
-    latest_charge: Optional[str]
-    livemode: bool
-    metadata: Dict[str, str]
-    next_action: Optional[Any]
-    on_behalf_of: Optional[str]
-    payment_method: Optional[str]
-    payment_method_configuration_details: Optional[Any]
-    payment_method_options: Optional[PaymentMethodOptions]
-    payment_method_types: List[str]
-    presentment_details: Optional[PresentmentDetails]
-    processing: Optional[Any]
-    receipt_email: Optional[str]
-    review: Optional[str]
-    setup_future_usage: Optional[str]
-    shipping: Optional[Any]
-    source: Optional[str]
-    statement_descriptor: Optional[str]
-    statement_descriptor_suffix: Optional[str]
-    status: str
-    transfer_data: Optional[Any]
-    transfer_group: Optional[str]
-
-    model_config = ConfigDict(extra="ignore")
-
-
-class PaymentIntentWrapper(BaseModel):
-    object: dict
-
-
-class PayloadSchema(BaseModel):
-    id: str
-    object: str
-    api_version: str
-    created: int
-    data: PaymentIntentWrapper
-    livemode: bool
-    pending_webhooks: int
-    request: dict[str, Any]
+class MembershipSummary(BaseModel):
+    id: int
+    name: str
+    # при желании замени на свой MembershipTypeEnum
     type: str
+    end_date: datetime = Field(..., description="Окончание действия в UTC")
+    status_db: str  # или ваш MembershipStatusEnum
 
-    model_config = ConfigDict(extra="ignore")
 
-    @property
-    def created_dt(self):
-        return datetime.fromtimestamp(self.created, tz=timezone.utc)
+class SubscriptionSummary(BaseModel):
+    id: str
+    status: SubscriptionStatusEnum
+
+
+class PaymentSummary(BaseModel):
+    amount_total: Optional[int] = Field(None, description="Сумма в минимальных единицах валюты (например, центы)")
+    currency: Optional[str] = Field(None, examples=["usd", "eur"])
+    invoice_id: Optional[str] = None
+
+
+class CheckoutSessionSummaryResponse(BaseModel):
+    membership: MembershipSummary
+    subscription: SubscriptionSummary
+    payment: Optional[PaymentSummary] = None
