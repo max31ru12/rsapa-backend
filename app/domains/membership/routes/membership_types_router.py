@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Annotated
 
 import stripe
@@ -12,9 +12,20 @@ from starlette.requests import Request
 from app.core.config import settings
 from app.domains.auth.utils import AdminUserDep, CurrentUserDep
 from app.domains.membership.dependencies import CurrentUserMembershipDep
-from app.domains.membership.models import MembershipStatusEnum, MembershipTypeSchema, UpdateMembershipTypeSchema
+from app.domains.membership.models import (
+    MembershipStatusEnum,
+    MembershipTypeSchema,
+    UpdateMembershipTypeSchema,
+    UserMembershipSchema,
+)
 from app.domains.membership.schemas import CheckoutSessionSummaryResponse
 from app.domains.membership.services import MembershipServiceDep
+from app.domains.membership.utils import (
+    process_checkout_session_completed,
+    process_customer_subscription_deleted,
+    process_customer_subscription_updated,
+    process_invoice_payment_failed,
+)
 
 stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="", tags=["Membership types"])
@@ -64,16 +75,28 @@ async def create_checkout_session(
     membership_type_id: Annotated[int, Path(...)],
     service: MembershipServiceDep,
     current_user: CurrentUserDep,  # noqa Auth dependency
+    membership: CurrentUserMembershipDep,
 ):
     membership_type = await service.get_membership_type_by_kwargs(id=membership_type_id)
     checkout_expires_at = int(time.time()) + 30 * 60
 
-    user_membership = await service.create_membership(
-        status=MembershipStatusEnum.INCOMPLETE,
-        end_date=datetime.utcnow() + timedelta(days=365),
-        user_id=current_user.id,
-        membership_type_id=membership_type.id,
-    )
+    if membership is None:
+        user_membership = await service.create_membership(
+            status=MembershipStatusEnum.INCOMPLETE,
+            end_date=datetime.utcnow() + timedelta(days=365),
+            user_id=current_user.id,
+            membership_type_id=membership_type.id,
+        )
+    else:
+        user_membership = await service.get_membership_by_kwargs(user_id=current_user.id)
+        await service.update_membership(
+            user_membership.id,
+            {
+                "status": MembershipStatusEnum.INCOMPLETE,
+                "end_date": datetime.utcnow() + timedelta(days=365),
+                "membership_type_id": membership_type.id,
+            },
+        )
 
     metadata = {
         "membership_type_id": str(membership_type.id),
@@ -104,9 +127,8 @@ async def create_checkout_session(
 async def fulfill_checkout(
     request: Request,
     service: MembershipServiceDep,
-    membership: CurrentUserMembershipDep,
     stripe_signature: str = Header(alias="Stripe-Signature"),
-) -> None:
+) -> UserMembershipSchema | None:
     payload = await request.body()
 
     try:
@@ -124,36 +146,22 @@ async def fulfill_checkout(
     metadata = data.metadata
 
     if event.type == "checkout.session.completed":
-        subscription_id = data["subscription"]
-        subscription = stripe.Subscription.retrieve(subscription_id)
-        user_membership_id = int(metadata["user_membership_id"])
+        return await process_checkout_session_completed(data, metadata, service)
 
-        await service.update_membership(
-            user_membership_id,
-            {
-                "status": MembershipStatusEnum(subscription.status),
-                "stripe_subscription_id": subscription_id,
-            },
-        )
-
-        return
+    elif event.type == "payment_intent.succeeded":
+        pass
 
     elif event.type == "customer.subscription.updated":
         # Обновление подписки
-        await service.update_membership(
-            data["id"],
-            {
-                "status": data["status"],
-                "end_date": datetime.fromtimestamp(data["current_period_end"], tz=timezone.utc)
-                if data.get("current_period_end")
-                else None,
-            },
-        )
+        return await process_customer_subscription_updated(data, service)
 
-    elif event.type in ("customer.subscription.deleted", "invoice.payment_failed"):
-        # Удаление или неоплата подписки
-        subscription = await service.get_membership_by_kwargs(stripe_subscription_id=MembershipStatusEnum(data["id"]))
-        await service.update_membership(subscription.id, {"status": MembershipStatusEnum.CANCELED})
+    elif event.type == "invoice.payment_failed":
+        return await process_invoice_payment_failed(data, service)
+
+    elif event.type == "customer.subscription.deleted":
+        return await process_customer_subscription_deleted(data, service)
+
+    return None
 
 
 class GetCheckoutSessionResponses(Responses):
