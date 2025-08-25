@@ -54,6 +54,12 @@ class MembershipStatusEnum(Enum):
     UNPAID = "unpaid"  # не пытается больше взять оплату
 
 
+class ApprovalStatusEnum(Enum):
+    APPROVED = "APPROVED"
+    PENDING = "PENDING"
+    REJECTED = "REJECTED"
+
+
 class UserMembership(Base, UCIMixin):
     __tablename__ = "users_memberships"
 
@@ -66,7 +72,12 @@ class UserMembership(Base, UCIMixin):
         default=MembershipStatusEnum.INCOMPLETE,
     )
     stripe_subscription_id: Mapped[str] = mapped_column(nullable=True)
-    approved: Mapped[bool] = mapped_column(nullable=False, default=False, server_default=text("false"))
+    approval_status: Mapped[bool] = mapped_column(
+        SQLAEnum(ApprovalStatusEnum, name="approval_status_enum"),
+        nullable=False,
+        default=ApprovalStatusEnum.PENDING,
+        server_default=text(ApprovalStatusEnum.PENDING.value),
+    )
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
     user: Mapped["User"] = relationship("User", back_populates="memberships")
@@ -106,9 +117,11 @@ class UserMembershipSchema(BaseModel):
     end_date: datetime
     status: MembershipStatusEnum
     stripe_subscription_id: str
-    approved: bool
+    approval_status: ApprovalStatusEnum
     user_id: int
     membership_type_id: int
+    user: UserSchema
+    membership_type: MembershipTypeSchema
 
     model_config = {
         "from_attributes": True,

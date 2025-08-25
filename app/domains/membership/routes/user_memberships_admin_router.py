@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
+from app.domains.auth.utils import AdminUserDep
 from app.domains.membership.filters import UserMembershipsFilter
 from app.domains.membership.models import FullUserMembershipSchema
 from app.domains.membership.services import MembershipServiceDep
@@ -28,7 +29,7 @@ class UserMembershipListResponses(InvalidRequestParamsResponses):
 async def get_all_user_memberships(
     service: MembershipServiceDep,
     params: PaginationParamsDep,
-    # admin: AdminUserDep,  # noqa Admin auth argument
+    admin: AdminUserDep,  # noqa
     ordering: OrderingParamsDep = None,
     filters: Annotated[UserMembershipsFilter, Depends()] = None,
 ) -> PaginatedResponse[FullUserMembershipSchema]:
@@ -50,11 +51,3 @@ async def get_all_user_memberships(
         )
     except InvalidOrderAttributeError:
         raise UserMembershipListResponses.INVALID_SORTER_FIELD
-
-
-@router.delete("/")
-async def get_joined_user_memberships(
-    service: MembershipServiceDep,
-):
-    data = await service.get_joined_membership()
-    return data

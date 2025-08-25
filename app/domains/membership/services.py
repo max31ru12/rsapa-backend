@@ -35,8 +35,11 @@ class MembershipService:
             return await self.uow.user_membership_repository.create(**kwargs)
 
     async def get_membership_by_kwargs(self, **kwargs) -> UserMembership:
+        stmt = select(UserMembership).options(
+            selectinload(UserMembership.user), selectinload(UserMembership.membership_type)
+        )
         async with self.uow:
-            return await self.uow.user_membership_repository.get_first_by_kwargs(**kwargs)
+            return await self.uow.user_membership_repository.get_first_by_kwargs(stmt, **kwargs)
 
     async def update_membership(self, membership_id: int, update_data: dict) -> UserMembership:
         async with self.uow:

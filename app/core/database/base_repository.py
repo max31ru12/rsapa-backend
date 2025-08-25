@@ -76,8 +76,11 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
         stmt = select(func.count()).select_from(self.model)
         return (await self.session.execute(stmt)).scalar()
 
-    async def get_first_by_kwargs(self, **kwargs) -> T:
-        stmt = select(self.model).filter_by(**kwargs)
+    async def get_first_by_kwargs(self, stmt=None, **kwargs) -> T:
+        if stmt is None:
+            stmt = select(self.model)
+
+        stmt = stmt.filter_by(**kwargs)
         return (await self.session.execute(stmt)).scalars().first()
 
     async def create(self, **kwargs) -> T:
