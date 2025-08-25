@@ -4,7 +4,7 @@ import pytest
 from faker import Faker
 from httpx import AsyncClient
 
-from app.domains.membership.infrastructure import AuthUnitOfWork
+from app.domains.auth.infrastructure import AuthUnitOfWork
 from app.domains.users.infrastructure import UserUnitOfWork
 
 pytestmark = pytest.mark.anyio

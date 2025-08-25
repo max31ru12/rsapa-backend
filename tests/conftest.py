@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import TEST_DB_URL
 from app.core.database.setup_db import Base, session_getter
-from app.domains.membership.infrastructure import AuthUnitOfWork
+from app.domains.auth.infrastructure import AuthUnitOfWork
 from app.domains.membership.models import MembershipType
 from app.domains.users.infrastructure import UserUnitOfWork
 

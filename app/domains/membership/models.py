@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.mixins import UCIMixin
 from app.core.database.setup_db import Base
+from app.domains.users.models import UserSchema
 
 if TYPE_CHECKING:
     from app.domains.users.models import User
@@ -65,6 +66,7 @@ class UserMembership(Base, UCIMixin):
         default=MembershipStatusEnum.INCOMPLETE,
     )
     stripe_subscription_id: Mapped[str] = mapped_column(nullable=True)
+    approved: Mapped[bool] = mapped_column(nullable=False, default=False, server_default=text("false"))
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
     user: Mapped["User"] = relationship("User", back_populates="memberships")
@@ -104,9 +106,18 @@ class UserMembershipSchema(BaseModel):
     end_date: datetime
     status: MembershipStatusEnum
     stripe_subscription_id: str
+    approved: bool
     user_id: int
     membership_type_id: int
 
     model_config = {
         "from_attributes": True,
     }
+
+
+class FullUserMembershipSchema(UserMembershipSchema):
+    user: "UserSchema"  # форвард-ссылка строкой
+    membership_type: MembershipTypeSchema
+
+
+FullUserMembershipSchema.model_rebuild()

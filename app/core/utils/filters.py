@@ -1,5 +1,41 @@
 from sqlalchemy.orm import InstrumentedAttribute
 
+# OPS = {
+#     "eq", "ne",
+#     "gt", "gte", "lt", "lte",
+#     "contains", "icontains",
+#     "startswith", "istartswith",
+#     "endswith", "iendswith",
+#     "in",
+# }
+
+
+def get_condition(column, operator: str, value):  # noqa
+    if operator == "eq":
+        return column == value
+    elif operator == "ne":
+        return column != value
+    elif operator == "gt":
+        return column > value
+    elif operator == "gte":
+        return column >= value
+    elif operator == "nt":
+        return column < value
+    elif operator == "nte":
+        return column <= value
+
+    elif operator == "icontains":
+        return column.ilike(f"%{value}%")
+    elif operator == "startswith":
+        return column.ilike(f"{value}%")
+    elif operator == "endswith":
+        return column.endswith(f"%{value}")
+    elif operator == "iendswith":
+        return column.iendswith(f"%{value}")
+
+    else:
+        raise ValueError(f"Unsupported operator: {operator}")
+
 
 def build_conditions(model, filters: dict[str, str]):
     conditions = []
@@ -7,6 +43,17 @@ def build_conditions(model, filters: dict[str, str]):
     for key, value in filters.items():
         if "__" in key:
             field_name, operator = key.split("__", 1)
+            if "__" in operator:  # case for "model__column__operator"
+                # retrieve related model name
+                related_model_name = field_name
+                # retrieve column name for related model and operator
+                field_name, operator = operator.split("__", 1)
+                related_model_attribute = getattr(model, related_model_name)
+
+                target_model = related_model_attribute.property.mapper.class_
+                target_column: InstrumentedAttribute = getattr(target_model, field_name, None)
+                conditions.append(get_condition(target_column, operator, value))
+                continue
         else:
             field_name, operator = key, "eq"
 
@@ -14,11 +61,6 @@ def build_conditions(model, filters: dict[str, str]):
         if column is None:
             continue
 
-        if operator == "eq":
-            conditions.append(column == value)
-        elif operator == "icontains":
-            conditions.append(column.ilike(f"%{value}%"))
-        elif operator == "startswith":
-            conditions.append(column.ilike(f"{value}%"))
+        conditions.append(get_condition(column, operator, value))
 
     return conditions

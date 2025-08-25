@@ -13,6 +13,7 @@ from app.core.utils.open_api import get_custom_open_api
 from app.domains.auth.api import router as auth_router
 from app.domains.feedback.api import router as feedback_router
 from app.domains.membership.routes.membership_types_router import router as membership_types_router
+from app.domains.membership.routes.user_memberships_admin_router import router as user_memberships_admin_router
 from app.domains.membership.routes.user_memberships_router import router as user_memberships_router
 from app.domains.news.api import router as news_router
 from app.domains.users.routes.admin_api import router as users_admin_router
@@ -60,13 +61,15 @@ app.openapi = get_custom_open_api(app)
 
 
 app.include_router(users_router, prefix="/api")
-app.include_router(users_admin_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(feedback_router, prefix="/api")
 app.include_router(news_router, prefix="/api")
 app.include_router(membership_types_router, prefix="/api/memberships")
 app.include_router(user_memberships_router, prefix="/api/memberships")
 
+
+app.include_router(users_admin_router, prefix="/api/stuff")
+app.include_router(user_memberships_admin_router, prefix="/api/stuff/memberships")
 
 origins = [
     "http://localhost:3000",

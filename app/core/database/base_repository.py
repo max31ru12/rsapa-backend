@@ -44,9 +44,10 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
         self.session = session
 
     async def list(
-        self, limit: int = None, offset: int = None, order_by: str = None, filters: dict[str, Any] = None
+        self, limit: int = None, offset: int = None, order_by: str = None, filters: dict[str, Any] = None, stmt=None
     ) -> [Sequence[T], int]:
-        stmt = select(self.model)
+        if stmt is None:
+            stmt = select(self.model)
         count_stmt = select(func.count()).select_from(self.model)
 
         if filters:
