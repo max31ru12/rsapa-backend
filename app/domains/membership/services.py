@@ -41,9 +41,9 @@ class MembershipService:
         async with self.uow:
             return await self.uow.user_membership_repository.get_first_by_kwargs(stmt, **kwargs)
 
-    async def update_membership(self, membership_id: int, update_data: dict) -> UserMembership:
+    async def update_user_membership(self, user_membership_id: int, update_data: dict) -> UserMembership:
         async with self.uow:
-            return await self.uow.user_membership_repository.update(membership_id, update_data)
+            return await self.uow.user_membership_repository.update(user_membership_id, update_data)
 
     async def get_joined_membership(
         self, limit: int = None, offset: int = None, order_by: str = None, filters: dict[str, Any] = None

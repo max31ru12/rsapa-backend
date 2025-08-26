@@ -5,7 +5,7 @@ from fastapi_exception_responses import Responses
 from app.core.config import settings
 from app.domains.auth.utils import CurrentUserDep
 from app.domains.membership.dependencies import CurrentUserMembershipDep
-from app.domains.membership.models import MembershipStatusEnum, UserMembershipSchema
+from app.domains.membership.models import MembershipStatusEnum, UpdatedMembershipSchema, UserMembershipSchema
 from app.domains.membership.services import MembershipServiceDep
 
 stripe.api_key = settings.STRIPE_API_KEY
@@ -40,13 +40,13 @@ class CancelMembershipResponses(Responses):
 async def cancel_membership(
     current_user: CurrentUserDep,
     service: MembershipServiceDep,
-) -> UserMembershipSchema:
+) -> UpdatedMembershipSchema:
     membership = await service.get_membership_by_kwargs(user_id=current_user.id, status=MembershipStatusEnum.ACTIVE)
 
     if membership is None:
         raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
 
-    updated_membership = await service.update_membership(membership.id, {"status": MembershipStatusEnum.CANCELED})
+    updated_membership = await service.update_user_membership(membership.id, {"status": MembershipStatusEnum.CANCELED})
     stripe.Subscription.modify(membership.stripe_subscription_id, cancel_at_period_end=True)
 
-    return UserMembershipSchema.from_orm(updated_membership)
+    return UpdatedMembershipSchema.from_orm(updated_membership)

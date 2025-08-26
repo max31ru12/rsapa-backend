@@ -89,7 +89,7 @@ async def create_checkout_session(
         )
     else:
         user_membership = await service.get_membership_by_kwargs(user_id=current_user.id)
-        await service.update_membership(
+        await service.update_user_membership(
             user_membership.id,
             {
                 "status": MembershipStatusEnum.INCOMPLETE,

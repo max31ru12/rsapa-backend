@@ -26,7 +26,7 @@ async def process_checkout_session_completed(
     if end_date:
         update_data["end_date"] = datetime.fromtimestamp(end_date, tz=timezone.utc)
 
-    user_membership = await service.update_membership(user_membership_id, update_data)
+    user_membership = await service.update_user_membership(user_membership_id, update_data)
 
     return UserMembershipSchema.from_orm(user_membership)
 
@@ -44,7 +44,7 @@ async def process_customer_subscription_updated(
     if end_date:
         update_data["end_date"] = datetime.fromtimestamp(end_date, tz=timezone.utc)
 
-    user_membership = await service.update_membership(user_membership.id, update_data)
+    user_membership = await service.update_user_membership(user_membership.id, update_data)
 
     return UserMembershipSchema.from_orm(user_membership)
 
@@ -56,7 +56,9 @@ async def process_customer_subscription_deleted(
     stripe_sub_id = data["id"]
     user_membership = await service.get_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
     if user_membership:
-        user_membership = await service.update_membership(user_membership.id, {"status": MembershipStatusEnum.CANCELED})
+        user_membership = await service.update_user_membership(
+            user_membership.id, {"status": MembershipStatusEnum.CANCELED}
+        )
     return UserMembershipSchema.from_orm(user_membership)
 
 
@@ -68,5 +70,5 @@ async def process_invoice_payment_failed(
     stripe_sub_id = data["id"]
     membership = await service.get_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
     if membership:
-        user_membership = await service.update_membership(membership.id, {"status": MembershipStatusEnum.PAST_DUE})
+        user_membership = await service.update_user_membership(membership.id, {"status": MembershipStatusEnum.PAST_DUE})
         return UserMembershipSchema.from_orm(user_membership)

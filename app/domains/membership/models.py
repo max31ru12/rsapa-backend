@@ -109,7 +109,12 @@ class MembershipTypeSchema(BaseModel):
     }
 
 
-class UserMembershipSchema(BaseModel):
+class UpdateUserMembershipSchema(BaseModel):
+    status: MembershipStatusEnum = Field(None)
+    approval_status: ApprovalStatusEnum = Field(None)
+
+
+class UpdatedMembershipSchema(BaseModel):
     id: int
     created_at: datetime
     updated_at: datetime
@@ -120,6 +125,13 @@ class UserMembershipSchema(BaseModel):
     approval_status: ApprovalStatusEnum
     user_id: int
     membership_type_id: int
+
+    model_config = {
+        "from_attributes": True,
+    }
+
+
+class UserMembershipSchema(UpdatedMembershipSchema):
     user: UserSchema
     membership_type: MembershipTypeSchema
 
