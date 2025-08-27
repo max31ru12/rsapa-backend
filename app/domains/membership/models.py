@@ -110,7 +110,6 @@ class MembershipTypeSchema(BaseModel):
 
 
 class UpdateUserMembershipSchema(BaseModel):
-    status: MembershipStatusEnum = Field(None)
     approval_status: ApprovalStatusEnum = Field(None)
 
 
