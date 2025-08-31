@@ -10,11 +10,11 @@ from app.domains.membership.models import MembershipType, UserMembership
 from app.domains.users.infrastructure import UserRepository
 
 
-class MembershipRepository(SQLAlchemyRepository):
+class MembershipRepository(SQLAlchemyRepository[MembershipType]):
     model = MembershipType
 
 
-class UserMembershipRepository(SQLAlchemyRepository):
+class UserMembershipRepository(SQLAlchemyRepository[UserMembership]):
     model = UserMembership
 
 

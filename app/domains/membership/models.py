@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING, Optional
@@ -64,7 +64,9 @@ class UserMembership(Base, UCIMixin):
     __tablename__ = "users_memberships"
 
     start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
-    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    end_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=lambda: datetime.now(timezone.utc) + timedelta(days=365)
+    )
 
     status: Mapped[MembershipStatusEnum] = mapped_column(
         SQLAEnum(MembershipStatusEnum, name="users_membership_enum"),
@@ -76,8 +78,11 @@ class UserMembership(Base, UCIMixin):
         SQLAEnum(ApprovalStatusEnum, name="approval_status_enum"),
         nullable=False,
         default=ApprovalStatusEnum.PENDING,
-        server_default=text(ApprovalStatusEnum.PENDING.value),
+        server_default=text("'PENDING'"),
     )
+
+    checkout_session_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    checkout_url: Mapped[str] = mapped_column(nullable=True)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
     user: Mapped["User"] = relationship("User", back_populates="memberships")

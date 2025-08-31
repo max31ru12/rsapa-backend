@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import stripe
 
@@ -23,8 +23,11 @@ async def process_checkout_session_completed(
         "stripe_subscription_id": subscription_id,
     }
     end_date = subscription.get("current_period_end")
+
     if end_date:
         update_data["end_date"] = datetime.fromtimestamp(end_date, tz=timezone.utc)
+    else:
+        update_data["end_date"] = datetime.utcnow() + timedelta(days=365)
 
     user_membership = await service.update_user_membership(user_membership_id, update_data)
 

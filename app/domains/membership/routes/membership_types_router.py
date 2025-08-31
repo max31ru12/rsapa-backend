@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import stripe
@@ -11,16 +11,20 @@ from starlette.requests import Request
 
 from app.core.config import settings
 from app.domains.auth.utils import AdminUserDep, CurrentUserDep
-from app.domains.membership.dependencies import CurrentUserMembershipDep
 from app.domains.membership.models import (
     MembershipStatusEnum,
+    MembershipTypeEnum,
     MembershipTypeSchema,
     UpdateMembershipTypeSchema,
     UserMembershipSchema,
 )
 from app.domains.membership.schemas import CheckoutSessionSummaryResponse
 from app.domains.membership.services import MembershipServiceDep
-from app.domains.membership.utils import (
+from app.domains.membership.utils.checkout_session_utils import (
+    check_membership_type_already_purchased,
+    check_session_is_locked,
+)
+from app.domains.membership.utils.webhook_utils import (
     process_checkout_session_completed,
     process_customer_subscription_deleted,
     process_customer_subscription_updated,
@@ -62,7 +66,7 @@ async def update_membership_type(
     membership_type_id: Annotated[int, Path(...)],
     update_data: UpdateMembershipTypeSchema,
     service: MembershipServiceDep,
-    admin: AdminUserDep,
+    admin: AdminUserDep,  # noqa
 ) -> MembershipTypeSchema:
     try:
         return await service.update_membership_type(membership_type_id, update_data.model_dump(exclude_unset=True))
@@ -70,45 +74,59 @@ async def update_membership_type(
         raise MembershipNotFoundResponses.MEMBERSHIP_NOT_FOUND
 
 
-@router.post("/membership-types/{membership_type_id}/checkout-sessions")
+class CreateCheckoutSessionResponses(Responses):
+    FORBIDDEN_MEMBERSHIP_TYPE = 403, "You can't purchase the membership type with provided id"
+    MEMBERSHIP_TYPE_NOT_FOUND = 404, "Membership type with provided id not found"
+    MEMBERSHIP_ALREADY_PURCHASED = 409, "Membership with provided id is already purchased"
+
+
+@router.post(
+    "/membership-types/{membership_type_id}/checkout-sessions",
+    status_code=201,
+    responses=CreateCheckoutSessionResponses.responses,
+    summary="Creates a checkout session for purchasing the provided membership",
+)
 async def create_checkout_session(
     membership_type_id: Annotated[int, Path(...)],
     service: MembershipServiceDep,
     current_user: CurrentUserDep,  # noqa Auth dependency
-    membership: CurrentUserMembershipDep,
-):
-    membership_type = await service.get_membership_type_by_kwargs(id=membership_type_id)
-    checkout_expires_at = int(time.time()) + 30 * 60
+) -> str:
+    now = datetime.utcnow()
+    membership = await service.get_membership_by_kwargs(user_id=current_user.id)
+    target_membership_type = await service.get_membership_type_by_kwargs(id=membership_type_id)
+    checkout_session_expires_at = int(time.time()) + 30 * 60
+
+    if target_membership_type is None:
+        raise CreateCheckoutSessionResponses.MEMBERSHIP_TYPE_NOT_FOUND
+
+    if target_membership_type.type == MembershipTypeEnum.HONORARY:
+        raise CreateCheckoutSessionResponses.FORBIDDEN_MEMBERSHIP_TYPE
+
+    if membership is not None and check_membership_type_already_purchased(membership, target_membership_type):
+        raise CreateCheckoutSessionResponses.MEMBERSHIP_ALREADY_PURCHASED
+
+    if membership is not None and (check_session_is_locked(membership)):
+        return membership.checkout_url
 
     if membership is None:
-        user_membership = await service.create_membership(
+        membership = await service.create_membership(
             status=MembershipStatusEnum.INCOMPLETE,
-            end_date=datetime.utcnow() + timedelta(days=365),
             user_id=current_user.id,
-            membership_type_id=membership_type.id,
-        )
-    else:
-        user_membership = await service.get_membership_by_kwargs(user_id=current_user.id)
-        await service.update_user_membership(
-            user_membership.id,
-            {
-                "status": MembershipStatusEnum.INCOMPLETE,
-                "end_date": datetime.utcnow() + timedelta(days=365),
-                "membership_type_id": membership_type.id,
-            },
+            membership_type_id=target_membership_type.id,
+            checkout_session_expires_at=datetime.fromtimestamp(checkout_session_expires_at, tz=timezone.utc),
         )
 
     metadata = {
-        "membership_type_id": str(membership_type.id),
+        "membership_type_id": str(target_membership_type.id),
         "user_id": str(current_user.id),
-        "user_membership_id": str(user_membership.id),
+        "user_membership_id": str(membership.id),
     }
 
     session = stripe.checkout.Session.create(
         mode="subscription",
         line_items=[
             {
-                "price": membership_type.stripe_price_id,
+                "price": target_membership_type.stripe_price_id,
                 "quantity": 1,
             }
         ],
@@ -117,8 +135,18 @@ async def create_checkout_session(
         customer_email=current_user.email,
         success_url="http://localhost:3000/payment/membership?success=true&session_id={CHECKOUT_SESSION_ID}",
         cancel_url="http://localhost:3000/payment/membership?canceled=true",
-        expires_at=checkout_expires_at,
+        expires_at=checkout_session_expires_at,
     )
+
+    membership_data = {
+        "status": MembershipStatusEnum.INCOMPLETE,
+        "end_date": now + timedelta(days=365),
+        "membership_type_id": target_membership_type.id,
+        "checkout_url": session.url,
+        "checkout_session_expires_at": datetime.fromtimestamp(checkout_session_expires_at),
+    }
+
+    await service.update_user_membership(membership.id, membership_data)
 
     return session.url
 
