@@ -158,7 +158,6 @@ async def test_multiple_users_can_create_independent_sessions(
     authentication_data_factory,
     membership_type_id,
 ):
-    # --- Первый пользователь ---
     auth_1, _, email_1 = await authentication_data_factory()
     async with membership_uow:
         user_1 = await membership_uow.user_repository.get_first_by_kwargs(email=email_1)
@@ -171,7 +170,6 @@ async def test_multiple_users_can_create_independent_sessions(
             checkout_session_expires_at=datetime.now(tz=timezone.utc) + timedelta(minutes=30),
         )
 
-    # Повторный запрос от user_1 → вернётся старая ссылка
     response_1 = await client.post(
         f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
         headers=auth_1,
@@ -180,7 +178,6 @@ async def test_multiple_users_can_create_independent_sessions(
     session_url_1 = response_1.json() if isinstance(response_1.json(), str) else response_1.text
     assert "stripe.com" in session_url_1
 
-    # --- Второй пользователь ---
     auth_2, _, email_2 = await authentication_data_factory()
     response_2 = await client.post(
         f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",

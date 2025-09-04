@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel, Field
-from sqlalchemy import DateTime, Enum as SQLAEnum, ForeignKey, Numeric, func, text
+from sqlalchemy import DateTime, Enum as SQLAEnum, ForeignKey, Numeric, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.mixins import UCIMixin
@@ -63,23 +63,23 @@ class ApprovalStatusEnum(Enum):
 class UserMembership(Base, UCIMixin):
     __tablename__ = "users_memberships"
 
-    start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
-    end_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=True, default=lambda: datetime.now(timezone.utc) + timedelta(days=365)
-    )
-
     status: Mapped[MembershipStatusEnum] = mapped_column(
         SQLAEnum(MembershipStatusEnum, name="users_membership_enum"),
         nullable=False,
         default=MembershipStatusEnum.INCOMPLETE,
     )
-    stripe_subscription_id: Mapped[str] = mapped_column(nullable=True)
-    approval_status: Mapped[bool] = mapped_column(
+    approval_status: Mapped[ApprovalStatusEnum] = mapped_column(
         SQLAEnum(ApprovalStatusEnum, name="approval_status_enum"),
         nullable=False,
         default=ApprovalStatusEnum.PENDING,
         server_default=text("'PENDING'"),
     )
+
+    stripe_subscription_id: Mapped[str] = mapped_column(nullable=True)
+    stripe_customer_id: Mapped[str] = mapped_column(nullable=True, unique=True)
+
+    current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    has_access: Mapped[bool] = mapped_column(default=False)
 
     checkout_session_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     checkout_url: Mapped[str] = mapped_column(nullable=True)
@@ -89,6 +89,8 @@ class UserMembership(Base, UCIMixin):
 
     membership_type_id: Mapped[int] = mapped_column(ForeignKey("membership_types.id"), nullable=False)
     membership_type: Mapped["MembershipType"] = relationship("MembershipType", back_populates="user_memberships")
+
+    _deleted: Mapped[bool] = mapped_column(default=False)
 
 
 class UpdateMembershipTypeSchema(BaseModel):
@@ -118,15 +120,24 @@ class UpdateUserMembershipSchema(BaseModel):
     approval_status: ApprovalStatusEnum = Field(None)
 
 
-class UpdatedMembershipSchema(BaseModel):
+class UserMembershipSchema(BaseModel):
     id: int
+
     created_at: datetime
     updated_at: datetime
-    start_date: datetime
-    end_date: datetime
+
     status: MembershipStatusEnum
-    stripe_subscription_id: str
     approval_status: ApprovalStatusEnum
+
+    stripe_subscription_id: str | None
+    stripe_customer_id: str | None
+
+    current_period_end: datetime | None
+    has_access: bool
+
+    checkout_session_expires_at: datetime | None
+    checkout_url: str | None
+
     user_id: int
     membership_type_id: int
 
@@ -135,7 +146,7 @@ class UpdatedMembershipSchema(BaseModel):
     }
 
 
-class UserMembershipSchema(UpdatedMembershipSchema):
+class ExtendedUserMembershipSchema(UserMembershipSchema):
     user: UserSchema
     membership_type: MembershipTypeSchema
 
@@ -144,9 +155,9 @@ class UserMembershipSchema(UpdatedMembershipSchema):
     }
 
 
-class FullUserMembershipSchema(UserMembershipSchema):
+class FullExtendedUserMembershipSchema(ExtendedUserMembershipSchema):
     user: "UserSchema"  # форвард-ссылка строкой
     membership_type: MembershipTypeSchema
 
 
-FullUserMembershipSchema.model_rebuild()
+FullExtendedUserMembershipSchema.model_rebuild()

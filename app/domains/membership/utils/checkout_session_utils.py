@@ -7,13 +7,17 @@ def check_membership_type_already_purchased(
     existing_user_membership: UserMembership,
     target_membership_type: MembershipType,
 ) -> bool:
+    if existing_user_membership.current_period_end is None:
+        return False
     is_same = existing_user_membership.membership_type_id == target_membership_type.id
     is_active = existing_user_membership.status in {
         MembershipStatusEnum.ACTIVE,
         MembershipStatusEnum.TRIALING,
         MembershipStatusEnum.PAST_DUE,
     }
-    not_expired = existing_user_membership.end_date > datetime.utcnow().replace(tzinfo=timezone.utc)
+    not_expired = existing_user_membership.current_period_end > datetime.now(tz=timezone.utc).replace(
+        tzinfo=timezone.utc
+    )
 
     return is_same and is_active and not_expired
 

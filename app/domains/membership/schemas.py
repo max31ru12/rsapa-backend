@@ -1,34 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime
-from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
-class SubscriptionStatusEnum(str, Enum):
-    INCOMPLETE = "incomplete"
-    INCOMPLETE_EXPIRED = "incomplete_expired"
-    TRIALING = "trialing"
-    ACTIVE = "active"
-    PAST_DUE = "past_due"
-    CANCELED = "canceled"
-    UNPAID = "unpaid"
-
-
-class MembershipSummary(BaseModel):
-    id: int
-    name: str
-    # при желании замени на свой MembershipTypeEnum
-    type: str
-    end_date: datetime = Field(..., description="Окончание действия в UTC")
-    status_db: str  # или ваш MembershipStatusEnum
+from app.domains.membership.models import MembershipStatusEnum, UserMembershipSchema
 
 
 class SubscriptionSummary(BaseModel):
     id: str
-    status: SubscriptionStatusEnum
+    status: MembershipStatusEnum
 
 
 class PaymentSummary(BaseModel):
@@ -38,6 +19,6 @@ class PaymentSummary(BaseModel):
 
 
 class CheckoutSessionSummaryResponse(BaseModel):
-    membership: MembershipSummary
+    membership: UserMembershipSchema
     subscription: SubscriptionSummary
     payment: Optional[PaymentSummary] = None

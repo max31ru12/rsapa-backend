@@ -9,3 +9,4 @@ exec stripe listen \
   --api-key "$STRIPE_API_KEY" \
   --forward-to "http://${BACKEND_DOMAIN}:${BACKEND_PORT}/api/memberships/stripe/webhook" \
   --events "$STRIPE_EVENTS"
+  --expand invoice.subscription

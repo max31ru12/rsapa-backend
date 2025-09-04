@@ -1,10 +1,11 @@
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Annotated
 
 import stripe
 from fastapi import APIRouter, Header, Path
 from fastapi_exception_responses import Responses
+from loguru import logger
 from starlette import status
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -16,7 +17,6 @@ from app.domains.membership.models import (
     MembershipTypeEnum,
     MembershipTypeSchema,
     UpdateMembershipTypeSchema,
-    UserMembershipSchema,
 )
 from app.domains.membership.schemas import CheckoutSessionSummaryResponse
 from app.domains.membership.services import MembershipServiceDep
@@ -24,15 +24,12 @@ from app.domains.membership.utils.checkout_session_utils import (
     check_membership_type_already_purchased,
     check_session_is_locked,
 )
-from app.domains.membership.utils.webhook_utils import (
-    process_checkout_session_completed,
-    process_customer_subscription_deleted,
-    process_customer_subscription_updated,
-    process_invoice_payment_failed,
-)
 
 stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="", tags=["Membership types"])
+
+logger.add("logs/checkout_info.log", rotation="30 days", level="INFO")
+logger.add("logs/checkout_errors.log", rotation="30 days", level="ERROR", backtrace=True, diagnose=True)
 
 
 @router.get("/membership-types")
@@ -78,6 +75,7 @@ class CreateCheckoutSessionResponses(Responses):
     FORBIDDEN_MEMBERSHIP_TYPE = 403, "You can't purchase the membership type with provided id"
     MEMBERSHIP_TYPE_NOT_FOUND = 404, "Membership type with provided id not found"
     MEMBERSHIP_ALREADY_PURCHASED = 409, "Membership with provided id is already purchased"
+    PAYMENT_PROVIDER_ERROR = 502, "Payment provider error"
 
 
 @router.post(
@@ -91,10 +89,13 @@ async def create_checkout_session(
     service: MembershipServiceDep,
     current_user: CurrentUserDep,  # noqa Auth dependency
 ) -> str:
-    now = datetime.utcnow()
     membership = await service.get_membership_by_kwargs(user_id=current_user.id)
     target_membership_type = await service.get_membership_type_by_kwargs(id=membership_type_id)
     checkout_session_expires_at = int(time.time()) + 30 * 60
+
+    logger.info(
+        f"Create checkout session called: user_id={current_user.id} membershipType={target_membership_type.type}"
+    )
 
     if target_membership_type is None:
         raise CreateCheckoutSessionResponses.MEMBERSHIP_TYPE_NOT_FOUND
@@ -106,6 +107,9 @@ async def create_checkout_session(
         raise CreateCheckoutSessionResponses.MEMBERSHIP_ALREADY_PURCHASED
 
     if membership is not None and (check_session_is_locked(membership)):
+        logger.warning(
+            f"Duplicate membership attempt: user_id={current_user.id}, membership_type_id={membership_type_id}"
+        )
         return membership.checkout_url
 
     if membership is None:
@@ -115,6 +119,14 @@ async def create_checkout_session(
             membership_type_id=target_membership_type.id,
             checkout_session_expires_at=datetime.fromtimestamp(checkout_session_expires_at, tz=timezone.utc),
         )
+        membership_creation_log_message = f"""
+            Membership created:
+            id={membership.id}
+            user_id={membership.user_id}
+            status={membership.status}
+            membershipType={target_membership_type.type}
+        """
+        logger.info(membership_creation_log_message)
 
     metadata = {
         "membership_type_id": str(target_membership_type.id),
@@ -122,41 +134,61 @@ async def create_checkout_session(
         "user_membership_id": str(membership.id),
     }
 
-    session = stripe.checkout.Session.create(
-        mode="subscription",
-        line_items=[
-            {
-                "price": target_membership_type.stripe_price_id,
-                "quantity": 1,
-            }
-        ],
-        metadata=metadata,
-        subscription_data={"metadata": metadata},
-        customer_email=current_user.email,
-        success_url="http://localhost:3000/payment/membership?success=true&session_id={CHECKOUT_SESSION_ID}",
-        cancel_url="http://localhost:3000/payment/membership?canceled=true",
-        expires_at=checkout_session_expires_at,
-    )
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[
+                {
+                    "price": target_membership_type.stripe_price_id,
+                    "quantity": 1,
+                }
+            ],
+            metadata=metadata,
+            subscription_data={"metadata": metadata},  # передается в invoice.paid
+            customer_email=current_user.email,
+            success_url="http://localhost:3000/payment/membership?success=true&session_id={CHECKOUT_SESSION_ID}",
+            cancel_url="http://localhost:3000/payment/membership?canceled=true",
+            expires_at=checkout_session_expires_at,
+        )
+    except stripe.error.StripeError as e:
+        logger.exception(f"Stripe API error: {str(e)}")
+        raise CreateCheckoutSessionResponses.PAYMENT_PROVIDER_ERROR
+    except Exception as e:
+        logger.exception(f"Unexpected error: {str(e)}")
+        raise e
 
     membership_data = {
         "status": MembershipStatusEnum.INCOMPLETE,
-        "end_date": now + timedelta(days=365),
         "membership_type_id": target_membership_type.id,
         "checkout_url": session.url,
         "checkout_session_expires_at": datetime.fromtimestamp(checkout_session_expires_at),
     }
 
     await service.update_user_membership(membership.id, membership_data)
+    message = f"""
+        Membership - add checkout info:\n
+        Stripe session id = {session.id}\n
+        Stripe price id = {target_membership_type.stripe_price_id}\n
+    """
+    logger.info(message)
 
     return session.url
 
 
-@router.post("/stripe/webhook")
+class FulfillCheckoutResponses(Responses):
+    INVALID_SIGNATURE = 400, "Invalid signature"
+
+
+@router.post(
+    "/stripe/webhook",
+    responses=FulfillCheckoutResponses.responses,
+    summary="Webhook responsible for handling stripe events",
+)
 async def fulfill_checkout(
     request: Request,
     service: MembershipServiceDep,
     stripe_signature: str = Header(alias="Stripe-Signature"),
-) -> UserMembershipSchema | None:
+) -> None:
     payload = await request.body()
 
     try:
@@ -165,29 +197,15 @@ async def fulfill_checkout(
             sig_header=stripe_signature,
             secret=settings.STRIPE_WEBHOOK_SECRET_KEY,
         )
+        logger.info(f"Event: {event, type}, ")
     except stripe.error.SignatureVerificationError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid signature")
+        logger.warning("Invalid stripe signature")
+        raise FulfillCheckoutResponses.INVALID_SIGNATURE
     except Exception as e:
+        logger.exception(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    data = event["data"]["object"]
-    metadata = data.metadata
-
-    if event.type == "checkout.session.completed":
-        return await process_checkout_session_completed(data, metadata, service)
-
-    elif event.type == "payment_intent.succeeded":
-        pass
-
-    elif event.type == "customer.subscription.updated":
-        # Обновление подписки
-        return await process_customer_subscription_updated(data, service)
-
-    elif event.type == "invoice.payment_failed":
-        return await process_invoice_payment_failed(data, service)
-
-    elif event.type == "customer.subscription.deleted":
-        return await process_customer_subscription_deleted(data, service)
+    await service.process_stripe_webhook_event(event)
 
     return None
 
@@ -225,10 +243,9 @@ async def get_session_summary_by_id(
     return CheckoutSessionSummaryResponse(
         membership={
             "id": str(user_membership.id),
-            "name": str(membership_type.name),
             "type": str(membership_type.type),
-            "end_date": str(user_membership.end_date),
             "status_db": str(user_membership.status),
+            "current_period_end": str(user_membership.current_period_end),
         },
         subscription={
             "id": str(stripe_subscription["id"]),
@@ -237,6 +254,6 @@ async def get_session_summary_by_id(
         payment={
             "amount_total": str(session.get("amount_total")),
             "currency": str(session.get("currency")),
-            "invoice_id": str(session.get("invoice")),
+            "invoice_id": str(session["invoice"]["id"]),
         },
     )

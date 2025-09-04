@@ -10,7 +10,11 @@ from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.membership.filters import UserMembershipsFilter
-from app.domains.membership.models import FullUserMembershipSchema, UpdatedMembershipSchema, UpdateUserMembershipSchema
+from app.domains.membership.models import (
+    FullExtendedUserMembershipSchema,
+    UpdateUserMembershipSchema,
+    UserMembershipSchema,
+)
 from app.domains.membership.services import MembershipServiceDep
 
 stripe.api_key = settings.STRIPE_API_KEY
@@ -32,7 +36,7 @@ async def get_all_user_memberships(
     # admin: AdminUserDep,  # noqa
     ordering: OrderingParamsDep = None,
     filters: Annotated[UserMembershipsFilter, Depends()] = None,
-) -> PaginatedResponse[FullUserMembershipSchema]:
+) -> PaginatedResponse[FullExtendedUserMembershipSchema]:
     try:
         user_memberships, count = await service.get_joined_membership(
             order_by=ordering,
@@ -41,7 +45,7 @@ async def get_all_user_memberships(
             offset=params["offset"],
         )
         # валидация списка объектов-моделей
-        ta = TypeAdapter(list[FullUserMembershipSchema])
+        ta = TypeAdapter(list[FullExtendedUserMembershipSchema])
         data = ta.validate_python(user_memberships)
         return PaginatedResponse(
             count=count,
@@ -65,7 +69,7 @@ async def update_user_membership(
     update_data: UpdateUserMembershipSchema,
     service: MembershipServiceDep,
     # admin: AdminUserDep,  # noqa
-) -> UpdatedMembershipSchema:
+) -> UserMembershipSchema:
     try:
         updated_user_membership = await service.update_user_membership(
             user_membership_id, update_data.model_dump(exclude_unset=True)
@@ -73,4 +77,4 @@ async def update_user_membership(
     except ValueError:
         raise UpdateUserMembershipResponses.USER_MEMBERSHIP_NOT_FOUND
 
-    return UpdatedMembershipSchema.from_orm(updated_user_membership)
+    return UserMembershipSchema.from_orm(updated_user_membership)
