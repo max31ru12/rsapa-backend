@@ -5,7 +5,7 @@ from fastapi_exception_responses import Responses
 from app.core.config import settings
 from app.domains.auth.utils import CurrentUserDep
 from app.domains.membership.dependencies import CurrentUserMembershipDep
-from app.domains.membership.models import ExtendedUserMembershipSchema, UserMembershipSchema
+from app.domains.membership.models import ExtendedUserMembershipSchema
 from app.domains.membership.services import MembershipServiceDep
 
 stripe.api_key = settings.STRIPE_API_KEY
@@ -40,10 +40,10 @@ class CancelMembershipResponses(Responses):
 async def cancel_membership(
     current_user: CurrentUserDep,
     service: MembershipServiceDep,
-) -> UserMembershipSchema:
+) -> None:
     try:
-        updated_membership = await service.cancel_membership(current_user.id)
+        await service.cancel_membership(current_user.id)
     except ValueError:
         raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
 
-    return UserMembershipSchema.from_orm(updated_membership)
+    # return UserMembershipSchema.from_orm(updated_membership)

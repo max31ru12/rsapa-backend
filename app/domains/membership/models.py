@@ -80,6 +80,7 @@ class UserMembership(Base, UCIMixin):
 
     current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     has_access: Mapped[bool] = mapped_column(default=False)
+    cancel_at_period_end: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
 
     checkout_session_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     checkout_url: Mapped[str] = mapped_column(nullable=True)
@@ -134,6 +135,7 @@ class UserMembershipSchema(BaseModel):
 
     current_period_end: datetime | None
     has_access: bool
+    cancel_at_period_end: bool
 
     checkout_session_expires_at: datetime | None
     checkout_url: str | None

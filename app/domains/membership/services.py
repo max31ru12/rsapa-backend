@@ -69,10 +69,10 @@ class MembershipService:
         if membership is None:
             raise ValueError("Active membership with provided ID not found")
 
-        updated_membership = await self.update_user_membership(membership.id, {"status": MembershipStatusEnum.CANCELED})
+        # updated_membership = await self.update_user_membership(membership.id, {"status": MembershipStatusEnum.CANCELED})
         stripe.Subscription.modify(membership.stripe_subscription_id, cancel_at_period_end=True)
 
-        return updated_membership
+        # return updated_membership
 
     async def process_stripe_webhook_event(self, event):  # noqa
         data = event["data"]["object"]
@@ -122,6 +122,9 @@ class MembershipService:
             current_period_end = data.get("current_period_end")
             if current_period_end:
                 update_data["current_period_end"] = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
+
+            if cancel_at_period_end := data.get("cancel_at_period_end"):
+                update_data["cancel_at_period_end"] = cancel_at_period_end
 
             await self.update_user_membership(user_membership.id, update_data)
 
