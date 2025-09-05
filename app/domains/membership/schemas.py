@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -22,3 +23,8 @@ class CheckoutSessionSummaryResponse(BaseModel):
     membership: UserMembershipSchema
     subscription: SubscriptionSummary
     payment: Optional[PaymentSummary] = None
+
+
+class UpdateAction(Enum):
+    RESUME = "resume"
+    CANCEL = "cancel"

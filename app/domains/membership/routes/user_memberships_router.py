@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.domains.auth.utils import CurrentUserDep
 from app.domains.membership.dependencies import CurrentUserMembershipDep
 from app.domains.membership.models import ExtendedUserMembershipSchema
+from app.domains.membership.schemas import UpdateAction
 from app.domains.membership.services import MembershipServiceDep
 
 stripe.api_key = settings.STRIPE_API_KEY
@@ -37,13 +38,19 @@ class CancelMembershipResponses(Responses):
     responses=CancelMembershipResponses.responses,
     summary="Cancel active current user membership",
 )
-async def cancel_membership(
+async def update_membership(
     current_user: CurrentUserDep,
     service: MembershipServiceDep,
+    action: UpdateAction,
 ) -> None:
-    try:
-        await service.cancel_membership(current_user.id)
-    except ValueError:
-        raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
+    if action == UpdateAction.CANCEL:
+        try:
+            await service.cancel_membership(current_user.id)
+        except ValueError:
+            raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
 
-    # return UserMembershipSchema.from_orm(updated_membership)
+    elif action == UpdateAction.RESUME:
+        try:
+            await service.resume_membership(current_user.id)
+        except ValueError:
+            raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
