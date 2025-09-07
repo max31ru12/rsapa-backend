@@ -11,6 +11,7 @@ from app.core.database.setup_db import Base
 from app.domains.feedback.models import ContactMessage  # noqa
 from app.domains.membership.models import MembershipType, UserMembership  # noqa
 from app.domains.news.models import News  # noqa
+from app.domains.payments.models import Payment  # noqa
 from app.domains.users.models import User  # noqa
 
 # this is the Alembic Config object, which provides

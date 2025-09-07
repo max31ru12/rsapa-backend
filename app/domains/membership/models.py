@@ -77,6 +77,7 @@ class UserMembership(Base, UCIMixin):
 
     stripe_subscription_id: Mapped[str] = mapped_column(nullable=True)
     stripe_customer_id: Mapped[str] = mapped_column(nullable=True, unique=True)
+    latest_invoice_id: Mapped[str] = mapped_column(nullable=True, unique=True)
 
     current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     has_access: Mapped[bool] = mapped_column(default=False)

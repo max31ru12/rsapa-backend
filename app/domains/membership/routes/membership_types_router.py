@@ -18,7 +18,6 @@ from app.domains.membership.models import (
     MembershipTypeSchema,
     UpdateMembershipTypeSchema,
 )
-from app.domains.membership.schemas import CheckoutSessionSummaryResponse
 from app.domains.membership.services import MembershipServiceDep
 from app.domains.membership.utils.checkout_session_utils import (
     check_membership_type_already_purchased,
@@ -224,7 +223,7 @@ async def get_session_summary_by_id(
     session_id: Annotated[str, Path(...)],
     service: MembershipServiceDep,
     current_user: CurrentUserDep,
-) -> CheckoutSessionSummaryResponse:
+) -> dict:
     session = stripe.checkout.Session.retrieve(session_id, expand=["subscription", "invoice", "line_items", "customer"])
 
     if session["mode"] != "subscription":
@@ -240,20 +239,20 @@ async def get_session_summary_by_id(
     stripe_subscription = session["subscription"]
     membership_type = await service.get_membership_type_by_kwargs(id=user_membership.membership_type_id)
 
-    return CheckoutSessionSummaryResponse(
-        membership={
-            "id": str(user_membership.id),
-            "type": str(membership_type.type),
-            "status_db": str(user_membership.status),
-            "current_period_end": str(user_membership.current_period_end),
+    return {
+        "membership": {
+            "id": user_membership.id,
+            "type": membership_type.type,
+            "status_db": user_membership.status,
+            "current_period_end": user_membership.current_period_end,
         },
-        subscription={
-            "id": str(stripe_subscription["id"]),
-            "status": str(stripe_subscription["status"]),
+        "subscription": {
+            "id": stripe_subscription["id"],
+            "status": MembershipStatusEnum(stripe_subscription["status"]),
         },
-        payment={
-            "amount_total": str(session.get("amount_total")),
-            "currency": str(session.get("currency")),
-            "invoice_id": str(session["invoice"]["id"]),
+        "payment": {
+            "amount_total": session.get("amount_total"),
+            "currency": session.get("currency"),
+            "invoice_id": session["invoice"]["id"],
         },
-    )
+    }

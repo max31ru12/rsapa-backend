@@ -5,10 +5,12 @@ import stripe
 from fastapi.params import Depends
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from stripe import Invoice
 
 from app.core.config import settings
 from app.domains.membership.infrastructure import MembershipUnitOfWork, get_membership_unit_of_work
 from app.domains.membership.models import MembershipStatusEnum, MembershipType, UserMembership
+from app.domains.payments.models import PaymentStatus, PaymentType
 
 stripe.api_key = settings.STRIPE_API_KEY
 
@@ -79,6 +81,36 @@ class MembershipService:
 
         stripe.Subscription.modify(membership.stripe_subscription_id, cancel_at_period_end=False)
 
+    async def create_subscription_initial_payment(self, invoice: Invoice, payment_type: PaymentType):
+        subscription_details = invoice.parent.subscription_details
+        line = invoice.lines.data[0]
+        price_details = line.pricing.price_details
+
+        async with self.uow:
+            exists = await self.uow.payment_repository.get_first_by_kwargs(invoice_id=invoice.id)
+            if exists:
+                return
+            await self.uow.payment_repository.create(
+                type=payment_type,
+                status=PaymentStatus.SUCCEEDED,
+                amount_total=invoice.total,
+                currency=invoice.currency,
+                billing_reason=invoice.billing_reason,
+                # stripe ids
+                invoice_id=invoice.id,
+                subscription_id=subscription_details.subscription,
+                stripe_customer_id=invoice.customer.id,
+                charge_id=invoice.get("charge"),
+                # price_product
+                price_id=price_details.price,
+                product_id=price_details.product,
+                # invoice context,
+                livemode=invoice.livemode,
+                description=invoice.description,
+                _metadata=subscription_details.metadata,
+                stripe_created_at=datetime.fromtimestamp(invoice.created, tz=timezone.utc),
+            )
+
     async def process_stripe_webhook_event(self, event):  # noqa
         data = event["data"]["object"]
         parent = data.get("parent", {})
@@ -88,13 +120,23 @@ class MembershipService:
         if event.type == "invoice.paid":
             invoice_id = data["id"]
 
-            invoice = stripe.Invoice.retrieve(invoice_id, expand=["subscription", "customer"])
+            invoice = stripe.Invoice.retrieve(
+                invoice_id, expand=["subscription", "customer", "payment_intent.latest_charge"]
+            )
 
-            if invoice.get("billing_reason") == "subscription_create":
+            billing_reason = invoice.billing_reason
+
+            if billing_reason == "subscription_create":
                 subscription_details = parent.get("subscription_details", {})
                 subscription_id = subscription_details.get("subscription")
+                payment_type = PaymentType.SUBSCRIPTION_INITIAL
+            elif billing_reason == "subscription_cycle":
+                subscription_details = parent.get("subscription_details", {})
+                subscription_id = subscription_details.get("subscription")
+                payment_type = PaymentType.SUBSCRIPTION_RENEWAL
             else:
                 subscription_id = invoice.get("subscription")
+                payment_type = PaymentType.SUBSCRIPTION_RENEWAL
 
             subscription = stripe.Subscription.retrieve(subscription_id)
 
@@ -110,11 +152,17 @@ class MembershipService:
                 "status": MembershipStatusEnum(subscription.status),
                 "stripe_subscription_id": subscription.id,
                 "current_period_end": current_period_end,
-                "stripe_customer_id": invoice["customer"]["id"],
+                "stripe_customer_id": invoice.customer.id,
                 "has_access": True,
                 "checkout_url": None,
                 "checkout_session_expires_at": None,
+                "latest_invoice_id": invoice.id,
             }
+
+            payment_exists = await self.uow.payment_repository.get_first_by_kwargs(invoice_id=invoice_id)
+
+            if not payment_exists:
+                await self.create_subscription_initial_payment(invoice, payment_type)
 
             await self.update_user_membership(int(user_membership_id), update_data)
 

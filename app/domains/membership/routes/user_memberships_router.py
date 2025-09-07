@@ -13,19 +13,13 @@ stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="/user-memberships", tags=["User memberships"])
 
 
-class CurrentUserMembershipResponses(Responses):
-    MEMBERSHIP_NOT_FOUND = 404, "Membership for current user not found"
-
-
 @router.get(
     "/current-user-membership",
-    responses=CurrentUserMembershipResponses.responses,
     summary="Get Current user membership",
 )
-async def get_current_user_membership(membership: CurrentUserMembershipDep) -> ExtendedUserMembershipSchema:
+async def get_current_user_membership(membership: CurrentUserMembershipDep) -> ExtendedUserMembershipSchema | None:
     if membership is None:
-        raise CurrentUserMembershipResponses.MEMBERSHIP_NOT_FOUND
-
+        return None
     return ExtendedUserMembershipSchema.from_orm(membership)
 
 
