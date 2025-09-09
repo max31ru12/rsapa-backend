@@ -40,12 +40,22 @@ async def get_all_memberships(
     return data
 
 
-@router.get("/membership-types/{membership_type_id}")
+class MembershipTypesDetailResponses(Responses):
+    MEMBERSHIP_TYPE_NOT_FOUND = 404, "Membership with provided id type not found"
+
+
+@router.get(
+    "/membership-types/{membership_type_id}",
+    responses=MembershipTypesDetailResponses.responses,
+    summary="Get membership type detail page by id",
+)
 async def get_membership_detail(
     membership_type_id: Annotated[int, Path(...)],
     service: MembershipServiceDep,
 ) -> MembershipTypeSchema:
     membership_type = await service.get_membership_type_by_kwargs(id=membership_type_id)
+    if membership_type is None:
+        raise MembershipTypesDetailResponses.MEMBERSHIP_TYPE_NOT_FOUND
     return MembershipTypeSchema.from_orm(membership_type)
 
 
