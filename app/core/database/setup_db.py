@@ -1,13 +1,13 @@
 from typing import AsyncGenerator
 
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.core.config import CONVENTION, DB_URL, DEV_MODE
 
@@ -35,3 +35,5 @@ async def session_getter() -> AsyncGenerator[AsyncSession, None]:
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=CONVENTION)
+
+    _deleted: Mapped[bool] = mapped_column(default=False, server_default=text("false"))

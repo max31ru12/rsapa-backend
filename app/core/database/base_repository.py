@@ -67,6 +67,9 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
         if limit is not None and offset is not None:
             stmt = stmt.offset(offset).limit(limit)
 
+        stmt = stmt.filter_by(_deleted=False)
+        count_stmt = count_stmt.filter_by(_deleted=False)
+
         data = (await self.session.execute(stmt)).scalars().all()
         count = (await self.session.execute(count_stmt)).scalar_one()
 
