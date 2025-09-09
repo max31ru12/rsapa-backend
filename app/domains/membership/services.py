@@ -3,6 +3,7 @@ from typing import Annotated, Any, Sequence
 
 import stripe
 from fastapi.params import Depends
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from stripe import Invoice
@@ -13,6 +14,9 @@ from app.domains.membership.models import MembershipStatusEnum, MembershipType, 
 from app.domains.payments.models import PaymentStatus, PaymentType
 
 stripe.api_key = settings.STRIPE_API_KEY
+
+
+logger.add("logs/invoice_info.log", rotation="365 days", level="INFO")
 
 
 class MembershipService:
@@ -82,6 +86,7 @@ class MembershipService:
         stripe.Subscription.modify(membership.stripe_subscription_id, cancel_at_period_end=False)
 
     async def create_subscription_initial_payment(self, invoice: Invoice, payment_type: PaymentType):
+        """Creates payment in case of invoice.paid"""
         subscription_details = invoice.parent.subscription_details
         line = invoice.lines.data[0]
         price_details = line.pricing.price_details
@@ -111,98 +116,143 @@ class MembershipService:
                 stripe_created_at=datetime.fromtimestamp(invoice.created, tz=timezone.utc),
             )
 
-    async def process_stripe_webhook_event(self, event):  # noqa
-        data = event["data"]["object"]
-        parent = data.get("parent", {})
+    async def handle_invoice_paid(self, data, parent) -> None:
+        invoice_id = data["id"]
+        invoice = stripe.Invoice.retrieve(
+            invoice_id, expand=["subscription", "customer", "payment_intent.latest_charge"]
+        )
+        billing_reason = invoice.billing_reason
         metadata = parent.get("subscription_details", {}).get("metadata", {})
         user_membership_id = metadata.get("user_membership_id")
 
-        if event.type == "invoice.paid":
-            invoice_id = data["id"]
+        if billing_reason == "subscription_create":
+            subscription_details = parent.get("subscription_details", {})
+            subscription_id = subscription_details.get("subscription")
+            payment_type = PaymentType.SUBSCRIPTION_INITIAL
+        elif billing_reason == "subscription_cycle":
+            subscription_details = parent.get("subscription_details", {})
+            subscription_id = subscription_details.get("subscription")
+            payment_type = PaymentType.SUBSCRIPTION_RENEWAL
+        else:
+            subscription_id = invoice.get("subscription")
+            payment_type = PaymentType.SUBSCRIPTION_RENEWAL
 
-            invoice = stripe.Invoice.retrieve(
-                invoice_id, expand=["subscription", "customer", "payment_intent.latest_charge"]
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        items = subscription.get("items", {}).get("data", [])
+
+        if not items:
+            raise ValueError("No subscription items found")
+
+        current_period_end = items[0].get("current_period_end")
+
+        if current_period_end is not None:
+            current_period_end = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
+
+        update_data = {
+            "status": MembershipStatusEnum(subscription.status),
+            "stripe_subscription_id": subscription.id,
+            "current_period_end": current_period_end,
+            "stripe_customer_id": invoice.customer.id,
+            "has_access": True,
+            "checkout_url": None,
+            "checkout_session_expires_at": None,
+            "latest_invoice_id": invoice.id,
+        }
+        payment_exists = await self.uow.payment_repository.get_first_by_kwargs(invoice_id=invoice_id)
+
+        if not payment_exists:
+            await self.create_subscription_initial_payment(invoice, payment_type)
+
+        await self.update_user_membership(int(user_membership_id), update_data)
+
+        logger.info(
+            f"""Event type: invoice.paid
+            user membership ID: {user_membership_id}
+            stripe subscription id: {subscription.id}
+            invoice ID: {invoice_id}
+            subscription status: {subscription.status}
+            metadata: {metadata}\n"""
+        )
+
+    async def handle_customer_subscription_updated(self, data) -> None:
+        user_membership = await self.get_membership_by_kwargs(stripe_subscription_id=data["id"])
+        if not user_membership:
+            raise ValueError("Membership with provided STRIPE_SUBSCRIPTION_ID not found")
+
+        update_data = {"status": MembershipStatusEnum(data["status"])}
+        current_period_end = data.get("current_period_end")
+        cancel_at_period_end = data.get("cancel_at_period_end")
+
+        if current_period_end is not None:
+            update_data["current_period_end"] = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
+
+        if cancel_at_period_end is not None:
+            update_data["cancel_at_period_end"] = cancel_at_period_end
+
+        await self.update_user_membership(user_membership.id, update_data)
+
+        logger.info(
+            f"""
+            Event type: customer.subscription.updated
+            User membership ID: {user_membership.id}
+            Stripe subscription ID: {data["id"]}
+            Membership status: {data["status"]}
+            current_period_end: {current_period_end}
+            cancel_at_period_end: {cancel_at_period_end}\n
+            """
+        )
+
+    async def handle_invoice_payment_failed(self, data) -> None:
+        stripe_sub_id = data["id"]
+        user_membership = await self.get_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
+        if user_membership:
+            await self.update_user_membership(user_membership.id, {"status": MembershipStatusEnum.PAST_DUE})
+            logger.info(
+                f"""
+                Event type: invoice.payment_failed
+                Membership ID: {user_membership.id}
+                Stripe subscription ID: {stripe_sub_id}
+                Stripe subscription status: {MembershipStatusEnum.PAST_DUE}\n
+                """
             )
+        else:
+            raise ValueError("Membership with provided STRIPE_SUBSCRIPTION_ID not found")
 
-            billing_reason = invoice.billing_reason
+    async def handle_customer_subscription_deleted(self, data) -> None:
+        stripe_sub_id = data["id"]
+        user_membership = await self.get_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
+        if user_membership:
+            await self.update_user_membership(user_membership.id, {"status": MembershipStatusEnum.CANCELED})
+        else:
+            raise ValueError("Membership with provided STRIPE_SUBSCRIPTION_ID not found")
+        logger.info(
+            f"""
+                Event type: invoice.payment_failed
+                Membership ID: {user_membership.id}
+                Stripe subscription ID: {stripe_sub_id}
+                Stripe subscription status: {MembershipStatusEnum.PAST_DUE}\n
+            """
+        )
 
-            if billing_reason == "subscription_create":
-                subscription_details = parent.get("subscription_details", {})
-                subscription_id = subscription_details.get("subscription")
-                payment_type = PaymentType.SUBSCRIPTION_INITIAL
-            elif billing_reason == "subscription_cycle":
-                subscription_details = parent.get("subscription_details", {})
-                subscription_id = subscription_details.get("subscription")
-                payment_type = PaymentType.SUBSCRIPTION_RENEWAL
-            else:
-                subscription_id = invoice.get("subscription")
-                payment_type = PaymentType.SUBSCRIPTION_RENEWAL
+    async def process_stripe_webhook_event(self, event):  # noqa
+        data = event["data"]["object"]
+        parent = data.get("parent", {})
 
-            subscription = stripe.Subscription.retrieve(subscription_id)
-
-            items = subscription.get("items", {}).get("data", [])
-            if not items:
-                raise ValueError("No subscription items found")
-
-            current_period_end = items[0].get("current_period_end")
-            if current_period_end is not None:
-                current_period_end = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
-
-            update_data = {
-                "status": MembershipStatusEnum(subscription.status),
-                "stripe_subscription_id": subscription.id,
-                "current_period_end": current_period_end,
-                "stripe_customer_id": invoice.customer.id,
-                "has_access": True,
-                "checkout_url": None,
-                "checkout_session_expires_at": None,
-                "latest_invoice_id": invoice.id,
-            }
-
-            payment_exists = await self.uow.payment_repository.get_first_by_kwargs(invoice_id=invoice_id)
-
-            if not payment_exists:
-                await self.create_subscription_initial_payment(invoice, payment_type)
-
-            await self.update_user_membership(int(user_membership_id), update_data)
+        if event.type == "invoice.paid":
+            await self.handle_invoice_paid(data, parent)
 
         elif event.type == "customer.subscription.updated":
-            user_membership = await self.get_membership_by_kwargs(stripe_subscription_id=data["id"])
-            if not user_membership:
-                raise ValueError("Membership with provided STRIPE_SUBSCRIPTION_ID not found")
-
-            update_data = {"status": MembershipStatusEnum(data["status"])}
-            current_period_end = data.get("current_period_end")
-            cancel_at_period_end = data.get("cancel_at_period_end")
-
-            if current_period_end is not None:
-                update_data["current_period_end"] = datetime.fromtimestamp(current_period_end, tz=timezone.utc)
-
-            if cancel_at_period_end is not None:
-                update_data["cancel_at_period_end"] = cancel_at_period_end
-
-            await self.update_user_membership(user_membership.id, update_data)
+            await self.handle_customer_subscription_updated(data)
 
         elif event.type == "payment_intent.payment_failed":
             pass  # вызывается при отклонеии карты в checkout session
 
         elif event.type == "invoice.payment_failed":
             # вызывается когда не удалось провести месячный платеж
-            stripe_sub_id = data["id"]
-            membership = await self.get_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
-            if membership:
-                await self.update_user_membership(membership.id, {"status": MembershipStatusEnum.PAST_DUE})
-            else:
-                raise ValueError("Membership with provided STRIPE_SUBSCRIPTION_ID not found")
+            await self.handle_invoice_payment_failed(data)
 
         elif event.type == "customer.subscription.deleted":
-            stripe_sub_id = data["id"]
-            user_membership = await self.get_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
-            if user_membership:
-                await self.update_user_membership(user_membership.id, {"status": MembershipStatusEnum.CANCELED})
-            else:
-                raise ValueError("Membership with provided STRIPE_SUBSCRIPTION_ID not found")
-
+            await self.handle_customer_subscription_deleted(data)
         return
 
 

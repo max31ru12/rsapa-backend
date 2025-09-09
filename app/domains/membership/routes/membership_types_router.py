@@ -174,12 +174,12 @@ async def create_checkout_session(
     }
 
     await service.update_user_membership(membership.id, membership_data)
-    message = f"""
-        Membership - add checkout info:\n
-        Stripe session id = {session.id}\n
-        Stripe price id = {target_membership_type.stripe_price_id}\n
-    """
-    logger.info(message)
+
+    logger.info(
+        f"""Membership - add checkout info:
+        Stripe session id = {session.id}
+        Stripe price id = {target_membership_type.stripe_price_id}\n"""
+    )
 
     return session.url
 
