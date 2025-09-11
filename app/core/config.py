@@ -1,9 +1,9 @@
-import os
 from os import getenv
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi_mail import ConnectionConfig
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 load_dotenv()
@@ -22,7 +22,15 @@ CONVENTION = {
 }
 
 
-class Settings(BaseSettings):
+class GmailConfig(BaseModel):
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_PORT: int
+    MAIL_SERVER: str
+
+
+class Settings(BaseSettings, GmailConfig):
     DB_HOST: str = "localhost"
     DB_PORT: str = "5432"
     DB_PASSWORD: str = "test"
@@ -40,12 +48,6 @@ class Settings(BaseSettings):
     MEDIA_API_PATH: str = "/api/media"
     MEDIA_STORAGE_PATH: Path = Path("media")
     NEWS_UPLOADS_PATH: Path = MEDIA_STORAGE_PATH / "news_uploads"
-
-    MAIL_USERNAME: str
-    MAIL_PASSWORD: str
-    MAIL_FROM: str
-    MAIL_PORT: int
-    MAIL_SERVER: str
 
     STRIPE_API_KEY: str
     STRIPE_WEBHOOK_SECRET_KEY: str
@@ -72,23 +74,3 @@ MAIL_CONFIG = ConnectionConfig(
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
 )
-
-
-MEMBERSHIP_STRIPE_IDS = {
-    "ACTIVE": {
-        "product_id": os.getenv("ACTIVE_MEMBERSHIP_ID"),
-        "price_id": os.getenv("ACTIVE_MEMBERSHIP_PRICE_ID"),
-    },
-    "TRAINEE": {
-        "product_id": os.getenv("TRAINEE_MEMBERSHIP_ID"),
-        "price_id": os.getenv("TRAINEE_MEMBERSHIP_PRICE_ID"),
-    },
-    "PATHWAY": {
-        "product_id": os.getenv("PATHWAY_MEMBERSHIP_ID"),
-        "price_id": os.getenv("PATHWAY_MEMBERSHIP_PRICE_ID"),
-    },
-    "HONORARY": {
-        "product_id": os.getenv("HONORARY_MEMBERSHIP_ID"),
-        "price_id": os.getenv("HONORARY_MEMBERSHIP_PRICE_ID"),
-    },
-}

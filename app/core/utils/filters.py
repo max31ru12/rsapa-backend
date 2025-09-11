@@ -1,14 +1,5 @@
 from sqlalchemy.orm import InstrumentedAttribute
 
-# OPS = {
-#     "eq", "ne",
-#     "gt", "gte", "lt", "lte",
-#     "contains", "icontains",
-#     "startswith", "istartswith",
-#     "endswith", "iendswith",
-#     "in",
-# }
-
 
 def get_condition(column, operator: str, value):  # noqa
     if operator == "eq":
@@ -32,6 +23,13 @@ def get_condition(column, operator: str, value):  # noqa
         return column.endswith(f"%{value}")
     elif operator == "iendswith":
         return column.iendswith(f"%{value}")
+    elif operator == "in":
+        if column.type.python_type:
+            try:
+                value = list(map(lambda val: int(val), value.split(",")))
+            except ValueError:
+                raise ValueError(f"Invalid integer filter for integer column {column}")
+        return column.in_(value)
 
     else:
         raise ValueError(f"Unsupported operator: {operator}")

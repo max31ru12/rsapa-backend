@@ -37,6 +37,10 @@ class InvalidOrderAttributeError(BaseException):
     pass
 
 
+class InvalidFilterError(BaseException):
+    pass
+
+
 class SQLAlchemyRepository(BaseRepository, Generic[T]):
     model: T = None
 
@@ -51,7 +55,10 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
         count_stmt = select(func.count()).select_from(self.model)
 
         if filters:
-            conditions = build_conditions(self.model, filters)
+            try:
+                conditions = build_conditions(self.model, filters)
+            except ValueError as e:
+                raise InvalidFilterError(f"Invalid filter for <{self.model.__name__}>. Error: {e}")
             stmt = stmt.filter(*conditions)
             count_stmt = count_stmt.filter(*conditions)
 
