@@ -138,6 +138,7 @@ class UserMembershipSchema(BaseModel):
 
     checkout_session_expires_at: datetime | None
     checkout_url: str | None
+    latest_invoice_id: str | None
 
     user_id: int
     membership_type_id: int
@@ -154,11 +155,3 @@ class ExtendedUserMembershipSchema(UserMembershipSchema):
     model_config = {
         "from_attributes": True,
     }
-
-
-class FullExtendedUserMembershipSchema(ExtendedUserMembershipSchema):
-    user: "UserSchema"  # форвард-ссылка строкой
-    membership_type: MembershipTypeSchema
-
-
-FullExtendedUserMembershipSchema.model_rebuild()

@@ -12,10 +12,10 @@ from app.core.config import DEV_MODE, settings
 from app.core.utils.open_api import get_custom_open_api
 from app.domains.auth.api import router as auth_router
 from app.domains.feedback.api import router as feedback_router
-from app.domains.membership.routes.membership_types_router import router as membership_types_router
-from app.domains.membership.routes.user_memberships_admin_router import router as user_memberships_admin_router
-from app.domains.membership.routes.user_memberships_router import router as user_memberships_router
+from app.domains.membership.routes.admin_api import router as membership_admin_router
+from app.domains.membership.routes.api import router as membership_router
 from app.domains.news.api import router as news_router
+from app.domains.payments.api import router as payments_router
 from app.domains.users.routes.admin_api import router as users_admin_router
 from app.domains.users.routes.api import router as users_router
 
@@ -64,18 +64,20 @@ app.include_router(users_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(feedback_router, prefix="/api")
 app.include_router(news_router, prefix="/api")
-app.include_router(membership_types_router, prefix="/api/memberships")
-app.include_router(user_memberships_router, prefix="/api/memberships")
+app.include_router(membership_router, prefix="/api")
+app.include_router(payments_router, prefix="/api")
 
 
 app.include_router(users_admin_router, prefix="/api/stuff")
-app.include_router(user_memberships_admin_router, prefix="/api/stuff/memberships")
+app.include_router(membership_admin_router, prefix="/api/stuff")
+
 
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
 ]
+
 
 # Настройка CORS
 app.add_middleware(

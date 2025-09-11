@@ -9,16 +9,30 @@ from app.core.config import settings
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
+from app.domains.auth.utils import AdminUserDep
 from app.domains.membership.filters import UserMembershipsFilter
 from app.domains.membership.models import (
-    FullExtendedUserMembershipSchema,
+    ExtendedUserMembershipSchema,
+    MembershipTypeSchema,
     UpdateUserMembershipSchema,
     UserMembershipSchema,
 )
 from app.domains.membership.services import MembershipServiceDep
 
 stripe.api_key = settings.STRIPE_API_KEY
-router = APIRouter(prefix="/user-memberships", tags=["User memberships admin"])
+router = APIRouter(prefix="/membership", tags=["Admin Membership"])
+
+
+@router.get(
+    "/membership-types",
+    summary="Retrieve all membership type",
+)
+async def get_all_membership_types(
+    service: MembershipServiceDep,
+) -> list[MembershipTypeSchema]:
+    membership_list, _ = await service.get_all_membership_types()
+    data = [MembershipTypeSchema.from_orm(item) for item in membership_list]
+    return data
 
 
 class UserMembershipListResponses(InvalidRequestParamsResponses):
@@ -26,17 +40,17 @@ class UserMembershipListResponses(InvalidRequestParamsResponses):
 
 
 @router.get(
-    "/",
+    "/user-memberships",
     responses=UserMembershipListResponses.responses,
     summary="Retrieve all paginated filtered and counted user memberships",
 )
 async def get_all_user_memberships(
     service: MembershipServiceDep,
     params: PaginationParamsDep,
-    # admin: AdminUserDep,  # noqa
+    admin: AdminUserDep,  # noqa
     ordering: OrderingParamsDep = None,
     filters: Annotated[UserMembershipsFilter, Depends()] = None,
-) -> PaginatedResponse[FullExtendedUserMembershipSchema]:
+) -> PaginatedResponse[ExtendedUserMembershipSchema]:
     try:
         user_memberships, count = await service.get_joined_membership(
             order_by=ordering,
@@ -45,7 +59,7 @@ async def get_all_user_memberships(
             offset=params["offset"],
         )
         # валидация списка объектов-моделей
-        ta = TypeAdapter(list[FullExtendedUserMembershipSchema])
+        ta = TypeAdapter(list[ExtendedUserMembershipSchema])
         data = ta.validate_python(user_memberships)
         return PaginatedResponse(
             count=count,
@@ -68,7 +82,7 @@ async def update_user_membership(
     user_membership_id: Annotated[int, Path(...)],
     update_data: UpdateUserMembershipSchema,
     service: MembershipServiceDep,
-    # admin: AdminUserDep,  # noqa
+    admin: AdminUserDep,  # noqa
 ) -> UserMembershipSchema:
     try:
         updated_user_membership = await service.update_user_membership(

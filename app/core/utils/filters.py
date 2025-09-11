@@ -41,7 +41,7 @@ def build_conditions(model, filters: dict[str, str]):
     for key, value in filters.items():
         if "__" in key:
             field_name, operator = key.split("__", 1)
-            if "__" in operator:  # case for "model__column__operator"
+            if "__" in operator:  # case for "related_model__column__operator"
                 # retrieve related model name
                 related_model_name = field_name
                 # retrieve column name for related model and operator

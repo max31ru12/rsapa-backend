@@ -18,7 +18,7 @@ async def test_invalid_signature(
     client: AsyncClient,
     faker: Faker,
 ) -> None:
-    response = await client.post("api/memberships/stripe/webhook", headers={"Stripe-Signature": faker.pystr()})
+    response = await client.post("api/payments/stripe/webhook", headers={"Stripe-Signature": faker.pystr()})
 
     assert response.status_code == 400
 
