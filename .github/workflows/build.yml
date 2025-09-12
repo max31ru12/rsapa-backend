@@ -49,15 +49,26 @@ jobs:
           echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
           echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env
 
+          echo "STRIPE_API_KEY=${{ secrets.STRIPE_API_KEY }}" >> .env
+          echo "STRIPE_EVENTS=checkout.session.completed,payment_intent.succeeded,invoice.payment_succeeded,invoice.payment_failed,payment_intent.payment_failed,customer.subscription.updated,customer.subscription.deleted,invoice.paid" >> .env
+          echo "STRIPE_WEBHOOK_SECRET_KEY=${{ secrets.STRIPE_WEBHOOK_SECRET_KEY }}" >> .env
+
+          echo "BACKEND_DOMAIN=rsapa_backend"
+          echo "BACKEND_PORT=8000"
+
           echo "DB_PORT=5432" >> .env
           echo "DB_PASSWORD=test" >> .env
           echo "DB_USER=test" >> .env
           echo "DB_NAME=test" >> .env
-          echo "DB_NAME=localhost" >> .env
+          echo "DB_HOST=localhost" >> .env
 
       - name: Run docker compose
         run: |
-          docker compose -f local.yml up -d
+          docker compose -f local.yml up -d rsapa_database stripe-listen
+
+      - name: Show Postgres logs
+        run: |
+          docker logs $(docker ps -q -f ancestor=postgres:alpine)
 
       - name: Wait for postgres
         run: |
@@ -72,9 +83,15 @@ jobs:
           echo "PostgreSQL failed to start"
           exit 1
 
+      - name: Install dependencies
+        run: |
+          sudo curl -sSL https://install.python-poetry.org | python3 -
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry install --with dev
+
       - name: Run migrations
         run: |
-          docker compose -f local.yml run --rm rsapa_backend poetry run alembic upgrade head
+          poetry run alembic upgrade head
 
   tests:
     runs-on: ubuntu-latest
@@ -88,6 +105,13 @@ jobs:
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
           echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
 
+          echo "STRIPE_API_KEY=${{ secrets.STRIPE_API_KEY }}" >> .env
+          echo "STRIPE_EVENTS=checkout.session.completed,payment_intent.succeeded,invoice.payment_succeeded,invoice.payment_failed,payment_intent.payment_failed,customer.subscription.updated,customer.subscription.deleted,invoice.paid" >> .env
+          echo "STRIPE_WEBHOOK_SECRET_KEY=${{ secrets.STRIPE_WEBHOOK_SECRET_KEY }}" >> .env
+
+          echo "BACKEND_DOMAIN=rsapa_backend"
+          echo "BACKEND_PORT=8000"
+
           echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
           echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
           echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env
@@ -98,7 +122,7 @@ jobs:
           echo "DB_PASSWORD=test" >> .env
           echo "DB_USER=test" >> .env
           echo "DB_NAME=test" >> .env
-          echo "DB_NAME=localhost" >> .env
+          echo "DB_HOST=localhost" >> .env
 
       - name: Run docker compose
         run: |
@@ -115,7 +139,7 @@ jobs:
           echo "PostgreSQL failed to start"
           exit 1
 
-          docker compose -f local.yml run --rm rsapa_backend poetry run alembic upgrade head
+          docker compose -f local.yml run --rm rsapa_backend poetry run alembic upgrade head -d
 
       - name: Install dependencies
         run: |
