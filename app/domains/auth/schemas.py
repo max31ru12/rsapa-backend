@@ -9,7 +9,6 @@ class RegisterFormData(BaseModel):
     lastname: str = Field(min_length=2)
     institution: str = Field(min_length=2)
     role: str = Field(min_length=2)
-    subscription_type_id: int
 
     @model_validator(mode="after")
     def check_passwords_match(self):
@@ -24,7 +23,7 @@ class LoginForm(BaseModel):
     remember: bool = False
 
     class Config:
-        json_schema_extra = {"examples": [{"email": "test@mail.com", "password": "test", "remember": True}]}
+        json_schema_extra = {"examples": [{"email": "admin@mail.com", "password": "admin", "remember": True}]}
 
 
 class AccessToken(BaseModel):

@@ -3,6 +3,13 @@
 
 ## Setup local development environment
 
+In the `local.yml` env-variables are set up so the project runs out of docker container.
+For deployment is needed to set up the list of env-variables below:
+
+- DB_HOST=rsapa_database
+- BACKEND_DOMAIN=${app_domain}
+- BACKEND_PORT=${app_port}
+
 ### Start and build containers
 
 ```shell
@@ -44,6 +51,14 @@ Root URL of api must start with `api/` prefix. For example:
 http://localhost:8000/api/users/1
 ```
 
+### Database
+
+### Stripe
+
+Used for online payments. When starting the app from a docker container is needed to set
+
+
+
 ### Media files storage
 
 the storage is accessible via `MEDIA_PATH_NAME/file_name`. For example:
@@ -51,6 +66,3 @@ the storage is accessible via `MEDIA_PATH_NAME/file_name`. For example:
 ```
 http://localhost:8000/api/media/photo.jpeg
 ```
-
-
-### CI/CD

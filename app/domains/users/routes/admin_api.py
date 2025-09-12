@@ -10,14 +10,14 @@ from app.domains.users.filters import UsersFilter
 from app.domains.users.models import UserSchema
 from app.domains.users.services import UserServiceDep
 
-router = APIRouter(tags=["Users admin"], prefix="/stuff/users")
+router = APIRouter(tags=["Users admin"], prefix="/users")
 
 
 class UserListResponses(InvalidRequestParamsResponses):
     pass
 
 
-@router.get("/", responses=UserListResponses.responses)
+@router.get("", responses=UserListResponses.responses)
 async def get_users(
     user_service: UserServiceDep,
     params: PaginationParamsDep,

@@ -30,7 +30,6 @@ async def test_email_already_in_use(
     user_data: dict[str | Any],
 ) -> None:
     user_creation_data = user_data.copy()
-    user_creation_data.pop("subscription_type_id")
 
     await user_uow.user_repository.create(**user_creation_data)
 

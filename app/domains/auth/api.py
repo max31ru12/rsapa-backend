@@ -1,13 +1,9 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi_exception_responses import Responses
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import Response
 
-from app.core.database.setup_db import session_getter
 from app.domains.auth.schemas import AccessToken, JWTTokenResponse, LoginForm, RegisterFormData
-from app.domains.auth.services import AuthServiceDep, get_subscriptions
+from app.domains.auth.services import AuthServiceDep
 from app.domains.auth.utils import (
     CurrentUserDep,
     RefreshTokenDep,
@@ -96,9 +92,3 @@ async def logout(
 ) -> str:
     response.delete_cookie("refresh_token")
     return "Successfully logged out"
-
-
-@router.get("/subscriptions")
-async def get_all_subscriptions(session: Annotated[AsyncSession, Depends(session_getter)]):
-    subscriptions = await get_subscriptions(session)
-    return subscriptions

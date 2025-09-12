@@ -3,6 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi_mail import ConnectionConfig
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 load_dotenv()
@@ -21,7 +22,15 @@ CONVENTION = {
 }
 
 
-class Settings(BaseSettings):
+class GmailConfig(BaseModel):
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_PORT: int
+    MAIL_SERVER: str
+
+
+class Settings(BaseSettings, GmailConfig):
     DB_HOST: str = "localhost"
     DB_PORT: str = "5432"
     DB_PASSWORD: str = "test"
@@ -40,11 +49,8 @@ class Settings(BaseSettings):
     MEDIA_STORAGE_PATH: Path = Path("media")
     NEWS_UPLOADS_PATH: Path = MEDIA_STORAGE_PATH / "news_uploads"
 
-    MAIL_USERNAME: str
-    MAIL_PASSWORD: str
-    MAIL_FROM: str
-    MAIL_PORT: int
-    MAIL_SERVER: str
+    STRIPE_API_KEY: str
+    STRIPE_WEBHOOK_SECRET_KEY: str
 
     class ConfigDict:
         env: Path = BASE_DIR / ".env"
