@@ -10,8 +10,8 @@ from starlette.requests import Request
 
 from app.core.config import settings
 from app.domains.auth.utils import CurrentUserDep
-from app.domains.membership.models import MembershipStatusEnum
 from app.domains.membership.services import MembershipServiceDep
+from app.domains.membership.utils.common import get_checkout_session_summary_dictionary
 
 stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -78,24 +78,10 @@ async def get_session_summary_by_id(
 
     if user_membership.user_id != current_user.id:
         raise GetCheckoutSessionResponses.FORBIDDEN
-
-    stripe_subscription = session["subscription"]
     membership_type = await service.get_membership_type_by_kwargs(id=user_membership.membership_type_id)
 
-    return {
-        "membership": {
-            "id": user_membership.id,
-            "type": membership_type.type,
-            "status_db": user_membership.status,
-            "current_period_end": user_membership.current_period_end,
-        },
-        "subscription": {
-            "id": stripe_subscription["id"],
-            "status": MembershipStatusEnum(stripe_subscription["status"]),
-        },
-        "payment": {
-            "amount_total": session.get("amount_total"),
-            "currency": session.get("currency"),
-            "invoice_id": session["invoice"]["id"],
-        },
-    }
+    return get_checkout_session_summary_dictionary(
+        user_membership,
+        membership_type,
+        session,
+    )

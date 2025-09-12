@@ -23,15 +23,15 @@ def check_membership_type_already_purchased(
     # Если дата окончания неизвестна — трактуем как не истёкшее (defensive),
     # чтобы не допустить второй покупки. Это поможет пройти твои тесты,
     # где current_period_end не задаётся.
-    cpe = existing_user_membership.current_period_end
-    if cpe is None:
+    current_period_end = existing_user_membership.current_period_end
+    if current_period_end is None:
         not_expired = True
     else:
         # Приводим к aware-UTC, если вдруг хранится без tzinfo
-        if cpe.tzinfo is None:
-            cpe = cpe.replace(tzinfo=timezone.utc)
+        if current_period_end.tzinfo is None:
+            current_period_end = current_period_end.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
-        not_expired = cpe > now  # или >= now, если нужна включительная логика
+        not_expired = current_period_end > now  # или >= now, если нужна включительная логика
 
     return is_same and is_active and not_expired
 

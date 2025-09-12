@@ -22,7 +22,6 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 COPY ./alembic ./
 COPY alembic.ini ./
 
-#CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0"]
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 EXPOSE 8000

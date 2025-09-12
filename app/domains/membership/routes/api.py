@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 import stripe
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, Query
 from fastapi_exception_responses import Responses
 from loguru import logger
 
@@ -49,24 +49,21 @@ class CancelMembershipResponses(Responses):
 @router.put(
     "/user-memberships/current-user-membership",
     responses=CancelMembershipResponses.responses,
-    summary="Cancel active current user membership",
+    summary="Cancel or resume active current user membership",
 )
 async def update_membership(
     current_user: CurrentUserDep,
     service: MembershipServiceDep,
-    action: UpdateAction,
+    action: Annotated[UpdateAction, Query(...)],
 ) -> None:
-    if action == UpdateAction.CANCEL:
-        try:
-            await service.cancel_membership(current_user.id)
-        except ValueError:
-            raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
+    user_membership = await service.get_membership_by_kwargs(user_id=current_user.id)
+    if user_membership is None:
+        raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
 
+    if action == UpdateAction.CANCEL:
+        await service.cancel_membership(current_user.id)
     elif action == UpdateAction.RESUME:
-        try:
-            await service.resume_membership(current_user.id)
-        except ValueError:
-            raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
+        await service.resume_membership(current_user.id)
 
 
 @router.get(
