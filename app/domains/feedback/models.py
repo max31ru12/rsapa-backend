@@ -18,6 +18,15 @@ class ContactMessage(Base, UCIMixin):
     answered: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
 
 
+class SponsorshipRequest(Base, UCIMixin):
+    __tablename__ = "sponsorship_requests"
+
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    email: Mapped[str] = mapped_column(String(256), nullable=False)
+    company: Mapped[str] = mapped_column(String(256), nullable=False)
+    message: Mapped[str] = mapped_column(nullable=False)
+
+
 class CreateContactMessageSchema(BaseModel):
     name: str = Field(min_length=2, max_length=128)
     email: EmailStr
@@ -34,3 +43,18 @@ class ContactMessageSchema(CreateContactMessageSchema):
     model_config = {
         "from_attributes": True,
     }
+
+
+class CreateSponsorshipRequestSchema(BaseModel):
+    name: str = Field(min_length=2, max_length=128)
+    email: EmailStr
+    company: str = Field(min_length=2, max_length=128)
+    message: str = Field(min_length=2, max_length=256)
+
+
+class SponsorshipRequestSchema(CreateSponsorshipRequestSchema):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

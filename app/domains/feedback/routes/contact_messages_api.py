@@ -10,14 +10,14 @@ from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.auth.utils import AdminUserDep
 from app.domains.feedback.filters import ContactMessagesFilter
 from app.domains.feedback.models import ContactMessageSchema, CreateContactMessageSchema
-from app.domains.feedback.services import ContactMessageServiceDep
+from app.domains.feedback.services import FeedbackServiceDep
 
 router = APIRouter(prefix="/contact-messages", tags=["Contact Messages"])
 
 
 @router.post("/")
 async def create_contact_message(
-    contact_message_service: ContactMessageServiceDep, message_data: CreateContactMessageSchema
+    contact_message_service: FeedbackServiceDep, message_data: CreateContactMessageSchema
 ) -> ContactMessageSchema:
     contact_message = await contact_message_service.create_contact_message(message_data)
     return ContactMessageSchema.from_orm(contact_message)
@@ -26,7 +26,7 @@ async def create_contact_message(
 @router.get("/", responses=InvalidRequestParamsResponses.responses)
 async def get_contact_messages(
     admin: AdminUserDep,  # noqa Admin auth argument
-    contact_message_service: ContactMessageServiceDep,
+    contact_message_service: FeedbackServiceDep,
     params: PaginationParamsDep,
     ordering: OrderingParamsDep = None,
     filters: Annotated[ContactMessagesFilter, Depends()] = None,
@@ -68,7 +68,7 @@ async def answer_contact_message(
     message_id: int,
     body: AnswerContactMessageBody,
     admin: AdminUserDep,  # noqa Admin auth argument
-    contact_message_service: ContactMessageServiceDep,
+    contact_message_service: FeedbackServiceDep,
 ) -> str:
     try:
         await contact_message_service.answer_contact_message(message_id, **body.model_dump())

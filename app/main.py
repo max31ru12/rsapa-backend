@@ -11,7 +11,8 @@ from starlette.staticfiles import StaticFiles
 from app.core.config import DEV_MODE, settings
 from app.core.utils.open_api import get_custom_open_api
 from app.domains.auth.api import router as auth_router
-from app.domains.feedback.api import router as feedback_router
+from app.domains.feedback.routes.contact_messages_api import router as contact_messages_router
+from app.domains.feedback.routes.sponsorship_requests_api import router as sponsorship_router
 from app.domains.membership.routes.admin_api import router as membership_admin_router
 from app.domains.membership.routes.api import router as membership_router
 from app.domains.news.api import router as news_router
@@ -62,7 +63,8 @@ app.openapi = get_custom_open_api(app)
 
 app.include_router(users_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
-app.include_router(feedback_router, prefix="/api")
+app.include_router(contact_messages_router, prefix="/api")
+app.include_router(sponsorship_router, prefix="/api")
 app.include_router(news_router, prefix="/api")
 app.include_router(membership_router, prefix="/api")
 app.include_router(payments_router, prefix="/api")
