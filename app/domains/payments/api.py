@@ -10,8 +10,8 @@ from starlette.requests import Request
 
 from app.core.config import settings
 from app.domains.auth.utils import CurrentUserDep
-from app.domains.membership.services import MembershipServiceDep
-from app.domains.membership.utils.common import get_checkout_session_summary_dictionary
+from app.domains.memberships.services import MembershipServiceDep
+from app.domains.memberships.utils.common import get_checkout_session_summary_dictionary
 
 stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="/payments", tags=["Payments"])

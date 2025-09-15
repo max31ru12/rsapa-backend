@@ -3,10 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Path, UploadFile
 from fastapi_exception_responses import Responses
 
+from app.core.common.request_params import OrderingParamsDep, PaginationParamsDep
+from app.core.common.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.core.config import settings
 from app.core.database.base_repository import InvalidOrderAttributeError
-from app.core.request_params import OrderingParamsDep, PaginationParamsDep
-from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.core.utils.save_file import save_file
 from app.domains.auth.utils import AdminUserDep
 from app.domains.news.filters import NewsFilter

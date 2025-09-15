@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.auth.infrastructure import AuthUnitOfWork
-from app.domains.membership.infrastructure import MembershipUnitOfWork
+from app.domains.memberships.infrastructure import MembershipUnitOfWork
 from app.domains.users.infrastructure import UserUnitOfWork
 
 pytestmark = pytest.mark.anyio

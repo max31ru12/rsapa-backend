@@ -5,7 +5,7 @@ import pytest
 from faker import Faker
 from httpx import AsyncClient
 
-from app.domains.membership.models import ApprovalStatusEnum, MembershipStatusEnum
+from app.domains.memberships.models import ApprovalStatusEnum, MembershipStatusEnum
 
 pytestmark = pytest.mark.anyio
 

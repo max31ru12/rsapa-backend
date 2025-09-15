@@ -13,8 +13,8 @@ from app.core.utils.open_api import get_custom_open_api
 from app.domains.auth.api import router as auth_router
 from app.domains.feedback.routes.contact_messages_api import router as contact_messages_router
 from app.domains.feedback.routes.sponsorship_requests_api import router as sponsorship_router
-from app.domains.membership.routes.admin_api import router as membership_admin_router
-from app.domains.membership.routes.api import router as membership_router
+from app.domains.memberships.routes.admin_api import router as membership_admin_router
+from app.domains.memberships.routes.api import router as membership_router
 from app.domains.news.api import router as news_router
 from app.domains.payments.api import router as payments_router
 from app.domains.users.routes.admin_api import router as users_admin_router

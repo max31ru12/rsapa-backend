@@ -1,9 +1,9 @@
-from app.domains.membership.models import MembershipStatusEnum, MembershipType, UserMembership
+from app.domains.memberships.models import MembershipStatusEnum, MembershipType, UserMembership
 
 
 def get_checkout_session_summary_dictionary(user_membership: UserMembership, membership_type: MembershipType, session):
     return {
-        "membership": {
+        "memberships": {
             "id": user_membership.id,
             "type": membership_type.type,
             "status_db": user_membership.status,

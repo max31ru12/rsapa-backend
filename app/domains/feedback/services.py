@@ -2,7 +2,8 @@ from typing import Annotated, Any
 
 from fastapi import Depends
 
-from app.core.utils.mail import send_email
+from app.domains.emails.plugins.gmail_plugin import GmailPlugin
+from app.domains.emails.services import get_email_service
 from app.domains.feedback.infrastructure import FeedbackUnitOfWork, get_feedback_unit_of_work
 from app.domains.feedback.models import CreateContactMessageSchema, CreateSponsorshipRequestSchema
 
@@ -10,6 +11,7 @@ from app.domains.feedback.models import CreateContactMessageSchema, CreateSponso
 class FeedbackService:
     def __init__(self, uow):
         self.uow: FeedbackUnitOfWork = uow
+        self.email_provider = get_email_service(GmailPlugin)
 
     async def create_contact_message(self, data: CreateContactMessageSchema):
         message_data = data.model_dump()
@@ -31,11 +33,10 @@ class FeedbackService:
 
             await self.uow.contact_message_repository.update(contact_message_id, {"answered": True})
 
-        await send_email(
-            to_email=contact_message.email,
+        await self.email_provider.send_email(
+            to=contact_message.email,
             subject=subject,
             body=answer_message,
-            plain=plain,
         )
 
     async def create_sponsorship_request(self, data: CreateSponsorshipRequestSchema):

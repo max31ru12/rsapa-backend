@@ -9,8 +9,8 @@ from sqlalchemy.orm import selectinload
 from stripe import Invoice
 
 from app.core.config import settings
-from app.domains.membership.infrastructure import MembershipUnitOfWork, get_membership_unit_of_work
-from app.domains.membership.models import MembershipStatusEnum, MembershipType, UserMembership
+from app.domains.memberships.infrastructure import MembershipUnitOfWork, get_membership_unit_of_work
+from app.domains.memberships.models import MembershipStatusEnum, MembershipType, UserMembership
 from app.domains.payments.models import PaymentStatus, PaymentType
 
 stripe.api_key = settings.STRIPE_API_KEY
@@ -73,7 +73,7 @@ class MembershipService:
         membership = await self.get_membership_by_kwargs(user_id=user_id, status=MembershipStatusEnum.ACTIVE)
 
         if membership is None:
-            raise ValueError("Active membership with provided ID not found")
+            raise ValueError("Active memberships with provided ID not found")
 
         stripe.Subscription.modify(membership.stripe_subscription_id, cancel_at_period_end=True)
 
@@ -81,7 +81,7 @@ class MembershipService:
         membership = await self.get_membership_by_kwargs(user_id=user_id, status=MembershipStatusEnum.ACTIVE)
 
         if membership is None:
-            raise ValueError("Active membership with provided ID not found")
+            raise ValueError("Active memberships with provided ID not found")
 
         stripe.Subscription.modify(membership.stripe_subscription_id, cancel_at_period_end=False)
 
@@ -167,7 +167,7 @@ class MembershipService:
 
         logger.info(
             f"""Event type: invoice.paid
-            user membership ID: {user_membership_id}
+            user memberships ID: {user_membership_id}
             stripe subscription id: {subscription.id}
             invoice ID: {invoice_id}
             subscription status: {subscription.status}
@@ -194,7 +194,7 @@ class MembershipService:
         logger.info(
             f"""
             Event type: customer.subscription.updated
-            User membership ID: {user_membership.id}
+            User memberships ID: {user_membership.id}
             Stripe subscription ID: {data["id"]}
             Membership status: {data["status"]}
             current_period_end: {current_period_end}

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database.setup_db import Base
 
 if TYPE_CHECKING:
-    from app.domains.membership.models import UserMembership
+    from app.domains.memberships.models import UserMembership
     from app.domains.news.models import News
     from app.domains.payments.models import Payment
 

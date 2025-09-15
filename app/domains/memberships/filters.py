@@ -3,11 +3,11 @@ from typing import Annotated
 from fastapi import Query
 from pydantic import BaseModel
 
-from app.domains.membership.models import ApprovalStatusEnum, MembershipStatusEnum, MembershipTypeEnum
+from app.domains.memberships.models import ApprovalStatusEnum, MembershipStatusEnum, MembershipTypeEnum
 
 
 class UserMembershipsFilter(BaseModel):
-    approval_status: Annotated[ApprovalStatusEnum | None, Query(description="Approved user membership filter")] = None
+    approval_status: Annotated[ApprovalStatusEnum | None, Query(description="Approved user memberships filter")] = None
     status: Annotated[MembershipStatusEnum | None, Query(description="Membership stripe status")] = None
     user__email__startswith: Annotated[str | None, Query(description="Email filter")] = None
     user__firstname__startswith: Annotated[str | None, Query(description="Firstname filter")] = None

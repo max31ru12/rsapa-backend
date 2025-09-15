@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 from fastapi_exception_responses import Responses
 from pydantic import BaseModel
 
+from app.core.common.request_params import OrderingParamsDep, PaginationParamsDep
+from app.core.common.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.core.database.base_repository import InvalidOrderAttributeError
-from app.core.request_params import OrderingParamsDep, PaginationParamsDep
-from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.auth.utils import AdminUserDep
 from app.domains.feedback.filters import ContactMessagesFilter
 from app.domains.feedback.models import ContactMessageSchema, CreateContactMessageSchema

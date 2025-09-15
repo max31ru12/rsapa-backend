@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.config import TEST_DB_URL
 from app.core.database.setup_db import Base
-from app.domains.membership.models import MembershipType
+from app.domains.memberships.models import MembershipType
 
 
 @pytest.fixture(scope="session")
@@ -34,7 +34,7 @@ async def test_session(test_session_factory: async_sessionmaker[AsyncSession]) -
 async def setup_database(test_engine: AsyncEngine) -> AsyncIterator[None]:
     """Setups database"""
     from app.domains.news.models import News  # noqa raises Mapper initialization errors withot this import
-    from app.domains.membership.models import UserMembership, MembershipType  # noqa
+    from app.domains.memberships.models import UserMembership, MembershipType  # noqa
 
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -1,4 +1,4 @@
-"""Refactore user membership
+"""Refactore user memberships
 
 Revision ID: 008
 Revises: 007

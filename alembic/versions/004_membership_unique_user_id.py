@@ -1,4 +1,4 @@
-"""membership unique user_id
+"""memberships unique user_id
 
 Revision ID: 004
 Revises: 003

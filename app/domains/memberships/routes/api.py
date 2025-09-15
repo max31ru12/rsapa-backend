@@ -9,23 +9,23 @@ from loguru import logger
 
 from app.core.config import settings
 from app.domains.auth.utils import AdminUserDep, CurrentUserDep
-from app.domains.membership.dependencies import CurrentUserMembershipDep
-from app.domains.membership.models import (
+from app.domains.memberships.dependencies import CurrentUserMembershipDep
+from app.domains.memberships.models import (
     ExtendedUserMembershipSchema,
     MembershipStatusEnum,
     MembershipTypeEnum,
     MembershipTypeSchema,
     UpdateMembershipTypeSchema,
 )
-from app.domains.membership.schemas import UpdateAction
-from app.domains.membership.services import MembershipServiceDep
-from app.domains.membership.utils.checkout_session_utils import (
+from app.domains.memberships.schemas import UpdateAction
+from app.domains.memberships.services import MembershipServiceDep
+from app.domains.memberships.utils.checkout_session_utils import (
     check_membership_type_already_purchased,
     check_session_is_locked,
 )
 
 stripe.api_key = settings.STRIPE_API_KEY
-router = APIRouter(prefix="/membership", tags=["Membership"])
+router = APIRouter(prefix="/memberships", tags=["Membership"])
 
 
 logger.add("logs/checkout_info.log", rotation="30 days", level="INFO")
@@ -34,7 +34,7 @@ logger.add("logs/checkout_errors.log", rotation="30 days", level="ERROR", backtr
 
 @router.get(
     "/user-memberships/current-user-membership",
-    summary="Get Current user membership",
+    summary="Get Current user memberships",
 )
 async def get_current_user_membership(membership: CurrentUserMembershipDep) -> ExtendedUserMembershipSchema | None:
     if membership is None:
@@ -43,13 +43,13 @@ async def get_current_user_membership(membership: CurrentUserMembershipDep) -> E
 
 
 class CancelMembershipResponses(Responses):
-    NO_ACTIVE_MEMBERSHIP = 404, "Active membership for current user not found"
+    NO_ACTIVE_MEMBERSHIP = 404, "Active memberships for current user not found"
 
 
 @router.put(
     "/user-memberships/current-user-membership",
     responses=CancelMembershipResponses.responses,
-    summary="Cancel or resume active current user membership",
+    summary="Cancel or resume active current user memberships",
 )
 async def update_membership(
     current_user: CurrentUserDep,
@@ -68,7 +68,7 @@ async def update_membership(
 
 @router.get(
     "/membership-types",
-    summary="Retrieve all membership type",
+    summary="Retrieve all memberships type",
 )
 async def get_all_membership_types(
     service: MembershipServiceDep,
@@ -85,7 +85,7 @@ class MembershipTypesDetailResponses(Responses):
 @router.get(
     "/membership-types/{membership_type_id}",
     responses=MembershipTypesDetailResponses.responses,
-    summary="Get membership type detail page by id",
+    summary="Get memberships type detail page by id",
 )
 async def get_membership_detail(
     membership_type_id: Annotated[int, Path(...)],
@@ -104,7 +104,7 @@ class MembershipNotFoundResponses(Responses):
 @router.put(
     "/membership-types/{membership_type_id}",
     responses=MembershipNotFoundResponses.responses,
-    summary="Update membership type",
+    summary="Update memberships type",
 )
 async def update_membership_type(
     membership_type_id: Annotated[int, Path(...)],
@@ -119,7 +119,7 @@ async def update_membership_type(
 
 
 class CreateCheckoutSessionResponses(Responses):
-    FORBIDDEN_MEMBERSHIP_TYPE = 403, "You can't purchase the membership type with provided id"
+    FORBIDDEN_MEMBERSHIP_TYPE = 403, "You can't purchase the memberships type with provided id"
     MEMBERSHIP_TYPE_NOT_FOUND = 404, "Membership type with provided id not found"
     MEMBERSHIP_ALREADY_PURCHASED = 409, "Membership with provided id is already purchased"
     PAYMENT_PROVIDER_ERROR = 502, "Payment provider error"
@@ -129,7 +129,7 @@ class CreateCheckoutSessionResponses(Responses):
     "/membership-types/{membership_type_id}/checkout-sessions",
     status_code=201,
     responses=CreateCheckoutSessionResponses.responses,
-    summary="Creates a checkout session for purchasing the provided membership",
+    summary="Creates a checkout session for purchasing the provided memberships",
 )
 async def create_checkout_session(
     membership_type_id: Annotated[int, Path(...)],
@@ -155,7 +155,7 @@ async def create_checkout_session(
 
     if membership is not None and (check_session_is_locked(membership)):
         logger.warning(
-            f"Duplicate membership attempt: user_id={current_user.id}, membership_type_id={membership_type_id}"
+            f"Duplicate memberships attempt: user_id={current_user.id}, membership_type_id={membership_type_id}"
         )
         return membership.checkout_url
 

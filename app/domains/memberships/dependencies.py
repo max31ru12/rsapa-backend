@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import Depends
 
 from app.domains.auth.utils import CurrentUserDep
-from app.domains.membership.models import UserMembership
-from app.domains.membership.services import MembershipServiceDep
+from app.domains.memberships.models import UserMembership
+from app.domains.memberships.services import MembershipServiceDep
 
 
 async def current_user_membership(

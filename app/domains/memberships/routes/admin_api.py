@@ -5,27 +5,27 @@ from fastapi import APIRouter, Depends, Path
 from fastapi_exception_responses import Responses
 from pydantic import TypeAdapter
 
+from app.core.common.request_params import OrderingParamsDep, PaginationParamsDep
+from app.core.common.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.core.config import settings
 from app.core.database.base_repository import InvalidOrderAttributeError
-from app.core.request_params import OrderingParamsDep, PaginationParamsDep
-from app.core.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.domains.auth.utils import AdminUserDep
-from app.domains.membership.filters import UserMembershipsFilter
-from app.domains.membership.models import (
+from app.domains.memberships.filters import UserMembershipsFilter
+from app.domains.memberships.models import (
     ExtendedUserMembershipSchema,
     MembershipTypeSchema,
     UpdateUserMembershipSchema,
     UserMembershipSchema,
 )
-from app.domains.membership.services import MembershipServiceDep
+from app.domains.memberships.services import MembershipServiceDep
 
 stripe.api_key = settings.STRIPE_API_KEY
-router = APIRouter(prefix="/membership", tags=["Admin Membership"])
+router = APIRouter(prefix="/memberships", tags=["Admin Membership"])
 
 
 @router.get(
     "/membership-types",
-    summary="Retrieve all membership type",
+    summary="Retrieve all memberships type",
 )
 async def get_all_membership_types(
     service: MembershipServiceDep,
@@ -72,11 +72,11 @@ async def get_all_user_memberships(
 
 
 class UpdateUserMembershipResponses(Responses):
-    USER_MEMBERSHIP_NOT_FOUND = 404, "User membership not found"
+    USER_MEMBERSHIP_NOT_FOUND = 404, "User memberships not found"
 
 
 @router.put(
-    "/{user_membership_id}", responses=UpdateUserMembershipResponses.responses, summary="Update user membership"
+    "/{user_membership_id}", responses=UpdateUserMembershipResponses.responses, summary="Update user memberships"
 )
 async def update_user_membership(
     user_membership_id: Annotated[int, Path(...)],

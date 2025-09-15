@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from app.domains.membership.models import MembershipStatusEnum, MembershipType, UserMembership
+from app.domains.memberships.models import MembershipStatusEnum, MembershipType, UserMembership
 
 
 def check_membership_type_already_purchased(
