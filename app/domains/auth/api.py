@@ -1,8 +1,17 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Query
 from fastapi_exception_responses import Responses
 from starlette.responses import Response
 
-from app.domains.auth.schemas import AccessToken, JWTTokenResponse, LoginForm, RegisterFormData
+from app.domains.auth.schemas import (
+    AccessToken,
+    ChangePasswordSchema,
+    JWTTokenResponse,
+    LoginForm,
+    RegisterFormData,
+    ResetPasswordSchema,
+)
 from app.domains.auth.services import AuthServiceDep
 from app.domains.auth.utils import (
     CurrentUserDep,
@@ -92,3 +101,47 @@ async def logout(
 ) -> str:
     response.delete_cookie("refresh_token")
     return "Successfully logged out"
+
+
+@router.post(
+    "/password-reset",
+    summary="Creates a password reset token",
+)
+async def reset_password(auth_service: AuthServiceDep, data: ResetPasswordSchema) -> None:
+    await auth_service.reset_password(data.email)
+
+
+class VerifyTokenResponses(Responses):
+    INVALID_TOKEN = 400, "Invalid token"
+
+
+@router.get(
+    "/password-reset/verify",
+    responses=VerifyTokenResponses.responses,
+    summary="Verifies password reset token",
+)
+async def verify_reset_token(
+    token: Annotated[str, Query(...)],
+    auth_service: AuthServiceDep,
+) -> str:
+    try:
+        return auth_service.verify_password_reset_token(token.encode())
+    except ValueError:
+        raise VerifyTokenResponses.INVALID_TOKEN
+
+
+class ConfirmPasswordResetResponses(Responses):
+    INVALID_TOKEN = 400, "Invalid token"
+
+
+@router.post("/password-reset/confirm")
+async def confirm_password_reset(
+    token: Annotated[str, Query(...)],
+    auth_service: AuthServiceDep,
+    data: ChangePasswordSchema,
+):
+    try:
+        email = auth_service.verify_password_reset_token(token.encode())
+        await auth_service.change_password(email, data.password)
+    except ValueError:
+        raise ConfirmPasswordResetResponses.INVALID_TOKEN

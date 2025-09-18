@@ -1,6 +1,7 @@
 from os import getenv
 from pathlib import Path
 
+from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
@@ -38,6 +39,7 @@ class Settings(BaseSettings, GmailConfig):
 
     SECRET_KEY: str
     ALGORITHM: str
+    FERNET_KEY: str
 
     ACCESS_TOKEN_LIFESPAN_HOURS: int = 1
     REFRESH_TOKEN_LIFETIME_DAYS: int = 1
@@ -51,11 +53,19 @@ class Settings(BaseSettings, GmailConfig):
     STRIPE_API_KEY: str
     STRIPE_WEBHOOK_SECRET_KEY: str
 
+    FRONTEND_DOMAIN: str
+
+    @property
+    def fernet_key_bytes(self):
+        return self.FERNET_KEY.encode()
+
     class ConfigDict:
         env: Path = BASE_DIR / ".env"
 
 
 settings = Settings()
+
+fernet = Fernet(settings.fernet_key_bytes)
 
 DB_URL: str = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 TEST_DB_URL: str = (

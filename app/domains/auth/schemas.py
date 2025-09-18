@@ -33,3 +33,18 @@ class AccessToken(BaseModel):
 
 class JWTTokenResponse(AccessToken):
     refresh_token: str | None
+
+
+class ResetPasswordSchema(BaseModel):
+    email: EmailStr
+
+
+class ChangePasswordSchema(BaseModel):
+    password: str = Field(min_length=4)
+    confirm_password: str = Field(min_length=4)
+
+    @model_validator(mode="after")
+    def check_passwords_match(self):
+        if self.password != self.confirm_password:
+            raise ValueError("Passwords do not match")
+        return self

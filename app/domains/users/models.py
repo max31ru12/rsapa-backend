@@ -34,6 +34,8 @@ class User(Base):
     institution: Mapped[str] = mapped_column()
     role: Mapped[str] = mapped_column()
 
+    last_password_change: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
     news: Mapped[list["News"]] = relationship("News", back_populates="author")
     memberships: Mapped[list["UserMembership"]] = relationship("UserMembership", back_populates="user")
     payments: Mapped[list["Payment"]] = relationship("Payment", back_populates="user")
