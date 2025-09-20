@@ -68,6 +68,7 @@ class UserSchema(BaseModel):
     avatar_path: str | None
     phone_number: str | None
     pending: bool
+    last_password_change: datetime | None
 
     model_config = {
         "from_attributes": True,

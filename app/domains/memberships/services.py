@@ -9,9 +9,12 @@ from sqlalchemy.orm import selectinload
 from stripe import Invoice
 
 from app.core.config import settings
+from app.domains.emails.plugins.gmail_plugin import GmailPlugin
+from app.domains.emails.services import get_email_service
 from app.domains.memberships.infrastructure import MembershipUnitOfWork, get_membership_unit_of_work
 from app.domains.memberships.models import MembershipStatusEnum, MembershipType, UserMembership
 from app.domains.payments.models import PaymentStatus, PaymentType
+from app.domains.users.models import User
 
 stripe.api_key = settings.STRIPE_API_KEY
 
@@ -22,6 +25,7 @@ logger.add("logs/invoice_info.log", rotation="365 days", level="INFO")
 class MembershipService:
     def __init__(self, uow):
         self.uow: MembershipUnitOfWork = uow
+        self.email_provider = get_email_service(GmailPlugin)
 
     async def get_all_membership_types(self) -> Sequence[MembershipType]:
         async with self.uow:
@@ -45,7 +49,7 @@ class MembershipService:
         async with self.uow:
             return await self.uow.user_membership_repository.create(**kwargs)
 
-    async def get_membership_by_kwargs(self, **kwargs) -> UserMembership:
+    async def get_user_membership_by_kwargs(self, **kwargs) -> UserMembership:
         stmt = select(UserMembership).options(
             selectinload(UserMembership.user), selectinload(UserMembership.membership_type)
         )
@@ -55,6 +59,11 @@ class MembershipService:
     async def update_user_membership(self, user_membership_id: int, update_data: dict) -> UserMembership:
         async with self.uow:
             return await self.uow.user_membership_repository.update(user_membership_id, update_data)
+
+    async def get_user_by_user_membership(self, user_membership_id: int) -> User:
+        async with self.uow:
+            user_membership = await self.uow.user_membership_repository.get_first_by_kwargs(id=user_membership_id)
+            return await self.uow.user_repository.get_first_by_kwargs(id=user_membership.user_id)
 
     async def get_joined_membership(
         self, limit: int = None, offset: int = None, order_by: str = None, filters: dict[str, Any] = None
@@ -70,7 +79,7 @@ class MembershipService:
             return result
 
     async def cancel_membership(self, user_id: int):
-        membership = await self.get_membership_by_kwargs(user_id=user_id, status=MembershipStatusEnum.ACTIVE)
+        membership = await self.get_user_membership_by_kwargs(user_id=user_id, status=MembershipStatusEnum.ACTIVE)
 
         if membership is None:
             raise ValueError("Active memberships with provided ID not found")
@@ -78,7 +87,7 @@ class MembershipService:
         stripe.Subscription.modify(membership.stripe_subscription_id, cancel_at_period_end=True)
 
     async def resume_membership(self, user_id):
-        membership = await self.get_membership_by_kwargs(user_id=user_id, status=MembershipStatusEnum.ACTIVE)
+        membership = await self.get_user_membership_by_kwargs(user_id=user_id, status=MembershipStatusEnum.ACTIVE)
 
         if membership is None:
             raise ValueError("Active memberships with provided ID not found")
@@ -175,7 +184,7 @@ class MembershipService:
         )
 
     async def handle_customer_subscription_updated(self, data) -> None:
-        user_membership = await self.get_membership_by_kwargs(stripe_subscription_id=data["id"])
+        user_membership = await self.get_user_membership_by_kwargs(stripe_subscription_id=data["id"])
         if not user_membership:
             raise ValueError("Membership with provided STRIPE_SUBSCRIPTION_ID not found")
 
@@ -204,7 +213,7 @@ class MembershipService:
 
     async def handle_invoice_payment_failed(self, data) -> None:
         stripe_sub_id = data["id"]
-        user_membership = await self.get_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
+        user_membership = await self.get_user_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
         if user_membership:
             await self.update_user_membership(user_membership.id, {"status": MembershipStatusEnum.PAST_DUE})
             logger.info(
@@ -220,7 +229,7 @@ class MembershipService:
 
     async def handle_customer_subscription_deleted(self, data) -> None:
         stripe_sub_id = data["id"]
-        user_membership = await self.get_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
+        user_membership = await self.get_user_membership_by_kwargs(stripe_subscription_id=stripe_sub_id)
         if user_membership:
             await self.update_user_membership(user_membership.id, {"status": MembershipStatusEnum.CANCELED})
         else:

@@ -74,7 +74,7 @@ async def get_session_summary_by_id(
 
     metadata = dict(session.get("metadata") or {})
     user_membership_id = int(metadata["user_membership_id"])
-    user_membership = await service.get_membership_by_kwargs(id=user_membership_id)
+    user_membership = await service.get_user_membership_by_kwargs(id=user_membership_id)
 
     if user_membership.user_id != current_user.id:
         raise GetCheckoutSessionResponses.FORBIDDEN

@@ -56,7 +56,7 @@ async def update_membership(
     service: MembershipServiceDep,
     action: Annotated[UpdateAction, Query(...)],
 ) -> None:
-    user_membership = await service.get_membership_by_kwargs(user_id=current_user.id)
+    user_membership = await service.get_user_membership_by_kwargs(user_id=current_user.id)
     if user_membership is None:
         raise CancelMembershipResponses.NO_ACTIVE_MEMBERSHIP
 
@@ -136,7 +136,7 @@ async def create_checkout_session(
     service: MembershipServiceDep,
     current_user: CurrentUserDep,  # noqa Auth dependency
 ) -> str:
-    membership = await service.get_membership_by_kwargs(user_id=current_user.id)
+    membership = await service.get_user_membership_by_kwargs(user_id=current_user.id)
     target_membership_type = await service.get_membership_type_by_kwargs(id=membership_type_id)
     checkout_session_expires_at = int(time.time()) + 30 * 60
 

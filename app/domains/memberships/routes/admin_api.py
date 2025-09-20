@@ -76,7 +76,9 @@ class UpdateUserMembershipResponses(Responses):
 
 
 @router.put(
-    "/{user_membership_id}", responses=UpdateUserMembershipResponses.responses, summary="Update user memberships"
+    "/user-memberships/{user_membership_id}",
+    responses=UpdateUserMembershipResponses.responses,
+    summary="Update user memberships",
 )
 async def update_user_membership(
     user_membership_id: Annotated[int, Path(...)],
@@ -87,6 +89,12 @@ async def update_user_membership(
     try:
         updated_user_membership = await service.update_user_membership(
             user_membership_id, update_data.model_dump(exclude_unset=True)
+        )
+        user = await service.get_user_by_user_membership(user_membership_id)
+        await service.email_provider.send_email(
+            to=user.email,
+            subject="Membsership status",
+            body=f"Membership status changed to {updated_user_membership.approval_status.lower}",
         )
     except ValueError:
         raise UpdateUserMembershipResponses.USER_MEMBERSHIP_NOT_FOUND

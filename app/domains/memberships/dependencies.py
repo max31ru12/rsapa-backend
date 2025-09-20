@@ -10,7 +10,7 @@ from app.domains.memberships.services import MembershipServiceDep
 async def current_user_membership(
     current_user: CurrentUserDep, membership_service: MembershipServiceDep
 ) -> UserMembership | None:
-    membership = await membership_service.get_membership_by_kwargs(user_id=current_user.id)
+    membership = await membership_service.get_user_membership_by_kwargs(user_id=current_user.id)
     return membership
 
 
