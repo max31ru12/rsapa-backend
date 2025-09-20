@@ -10,8 +10,9 @@ from app.core.config import BASE_DIR, settings
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.utils.save_file import save_file
 from app.domains.auth.utils import CurrentUserDep
+from app.domains.users.exceptions import InvalidPasswordError
 from app.domains.users.filters import UsersFilter
-from app.domains.users.models import UpdateUserSchema, UserSchema
+from app.domains.users.models import ChangePasswordSchema, UpdateUserSchema, UserSchema
 from app.domains.users.services import UserServiceDep
 
 router = APIRouter(tags=["users"], prefix="/users")
@@ -136,3 +137,27 @@ async def remove_user_avatar(
         await user_service.delete_avatar(user_id)
     except ValueError:
         raise DeleteUserAvatarResponses.USER_NOT_FOUND
+
+
+class ChangePasswordResponses(Responses):
+    INVALID_PASSWORD = 403, "Invalid password"
+    USER_NOT_FOUND = 404, "User with provided ID not found"
+
+
+@router.post(
+    "/{user_id}/password-change",
+    responses=ChangePasswordResponses.responses,
+    summary="Changes user password",
+)
+async def change_user_password(
+    user_id: Annotated[int, Path()],
+    user_service: UserServiceDep,
+    current_user: CurrentUserDep,  # noqa
+    data: ChangePasswordSchema,
+) -> None:
+    try:
+        await user_service.change_password(user_id, data.old_password, data.new_password)
+    except ValueError:
+        raise ChangePasswordResponses.USER_NOT_FOUND
+    except InvalidPasswordError:
+        raise ChangePasswordResponses.INVALID_PASSWORD

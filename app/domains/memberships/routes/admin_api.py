@@ -94,7 +94,7 @@ async def update_user_membership(
         await service.email_provider.send_email(
             to=user.email,
             subject="Membsership status",
-            body=f"Membership status changed to {updated_user_membership.approval_status.lower}",
+            body=f"Membership status changed to {updated_user_membership.approval_status.value.lower}",
         )
     except ValueError:
         raise UpdateUserMembershipResponses.USER_MEMBERSHIP_NOT_FOUND

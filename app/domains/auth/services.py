@@ -52,13 +52,14 @@ class AuthService:
 
     async def reset_password(self, email: str):
         token = self.cryptographer.create_token(email)
+        link = f"http://{settings.FRONTEND_DOMAIN}/auth/password-reset/confirm/?token={token.decode()}"
         message = f"""
         Hello,
 
         We received a request to reset the password for your account (user@example.com).
         Please click the link below to set a new password:
 
-        http://{settings.FRONTEND_DOMAIN}/auth/password-reset/confirm/?token={token.decode()}
+        {link}
 
         This link is valid for 1 hour. If you did not request a password reset, please ignore this message.
 

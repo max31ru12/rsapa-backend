@@ -1,10 +1,12 @@
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import Depends
 
 from app.core.config import BASE_DIR
+from app.domains.users.exceptions import InvalidPasswordError
 from app.domains.users.infrastructure import UserUnitOfWork, get_user_unit_of_work
 from app.domains.users.models import User
 
@@ -60,6 +62,20 @@ class UserService:
                 raise ValueError("There is no such user with provided id")
             os.remove(BASE_DIR / user.avatar_path)
             await self.uow.user_repository.update(user_id, {"avatar_path": None})
+
+    async def change_password(self, user_id, old_password, new_password):
+        async with self.uow:
+            user = await self.uow.user_repository.get_first_by_kwargs(id=user_id)
+
+            if user is None:
+                raise ValueError("user with provided email not found")
+
+            if not user.verify_password(old_password):
+                raise InvalidPasswordError("Invalid password")
+
+            user.password = new_password
+            await self.uow._session.flush()  # noqa property's setter manual calling
+            await self.uow.user_repository.update(user.id, {"last_password_change": datetime.now(tz=timezone.utc)})
 
 
 def get_user_service(uow: Annotated[UserUnitOfWork, Depends(get_user_unit_of_work)]) -> UserService:

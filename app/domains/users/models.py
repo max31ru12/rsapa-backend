@@ -3,12 +3,13 @@ from typing import TYPE_CHECKING, Annotated
 
 import phonenumbers
 from passlib.hash import bcrypt
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 from sqlalchemy import Boolean, DateTime, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.setup_db import Base
+from app.domains.shared.types import Password
 
 if TYPE_CHECKING:
     from app.domains.memberships.models import UserMembership
@@ -35,6 +36,7 @@ class User(Base):
     role: Mapped[str] = mapped_column()
 
     last_password_change: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    email_confirmed: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
 
     news: Mapped[list["News"]] = relationship("News", back_populates="author")
     memberships: Mapped[list["UserMembership"]] = relationship("UserMembership", back_populates="user")
@@ -69,6 +71,7 @@ class UserSchema(BaseModel):
     phone_number: str | None
     pending: bool
     last_password_change: datetime | None
+    email_confirmed: bool
 
     model_config = {
         "from_attributes": True,
@@ -94,3 +97,24 @@ class UpdateUserSchema(BaseModel):
         except phonenumbers.NumberParseException:
             raise PydanticCustomError("phone_number.unparsable", "Invalid phone number format")
         return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+
+
+class ChangePasswordSchema(BaseModel):
+    old_password: str
+    new_password: Password
+    confirm_new_password: Password
+
+    @model_validator(mode="after")
+    def check_passwords_match(self):
+        if self.new_password != self.confirm_new_password:
+            raise PydanticCustomError(
+                "password_mismatch",  # internal code
+                "Passwords do not match",  # user-facing message
+            )
+        return self
+
+    @field_validator("new_password", "confirm_new_password")
+    def validate_password(cls, v):
+        if len(v) < 4:
+            raise PydanticCustomError("password_too_short", "Password should have at least 4 characters")
+        return v
