@@ -1,153 +1,132 @@
+name: CI
+
 on:
   push:
-    branches: [ "*" ]
+    branches: ["*"]
   pull_request:
-    branches: [ "*" ]
+    branches: ["*"]
+
+# --- Общие якоря (DRY) ---
+x-poetry-install: &poetry_install
+  - name: Install Poetry
+    run: |
+      python3 -m pip install --upgrade pip
+      python3 -m pip install --upgrade pipx
+      pipx ensurepath
+      pipx install poetry
+      echo "$HOME/.local/bin" >> $GITHUB_PATH
+  - name: Install dependencies
+    run: |
+      poetry --version
+      poetry install --with dev
+
+x-write-dotenv: &write_dotenv
+  - name: Write .env
+    shell: bash
+    run: |
+      cat > .env <<'EOF'
+      SECRET_KEY=${{ secrets.SECRET_KEY }}
+      ALGORITHM=${{ secrets.ALGORITHM }}
+
+      MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+      MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+      MAIL_FROM=${{ secrets.MAIL_FROM }}
+      MAIL_PORT=${{ secrets.MAIL_PORT }}
+      MAIL_SERVER=${{ secrets.MAIL_SERVER }}
+
+      STRIPE_API_KEY=${{ secrets.STRIPE_API_KEY }}
+      STRIPE_EVENTS=checkout.session.completed,payment_intent.succeeded,invoice.payment_succeeded,invoice.payment_failed,payment_intent.payment_failed,customer.subscription.updated,customer.subscription.deleted,invoice.paid
+      STRIPE_WEBHOOK_SECRET_KEY=${{ secrets.STRIPE_WEBHOOK_SECRET_KEY }}
+
+      BACKEND_DOMAIN=rsapa_backend
+      BACKEND_PORT=8000
+
+      DB_PORT=5432
+      DB_PASSWORD=test
+      DB_USER=test
+      DB_NAME=test
+      DB_HOST=localhost
+      EOF
+      echo ".env written:"
+      sed 's/^\(.*PASSWORD=.*\)$/\1 (hidden)/; s/^\(SECRET_KEY=.*\)$/\1 (hidden)/' .env
+
+x-wait-postgres: &wait_postgres
+  - name: Wait for Postgres
+    shell: bash
+    run: |
+      for i in {1..12}; do
+        if docker compose -f local.yml exec -T rsapa_database pg_isready -U test; then
+          echo "PostgreSQL is ready"
+          exit 0
+        fi
+        echo "Waiting for PostgreSQL..."
+        sleep 5
+      done
+      echo "PostgreSQL failed to start"
+      docker compose -f local.yml logs rsapa_database || true
+      exit 1
 
 jobs:
-
-  setup-docker:
-    uses: ./.github/workflows/setup-docker.yml
-
-  setup-envs:
-    uses: ./.github/workflows/setup-envs.yml
-
   prepare:
     runs-on: ubuntu-latest
-    needs: setup-envs
     steps:
-      - uses: actions/checkout@main
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          sudo curl -sSL https://install.python-poetry.org | python3 -
-          export PATH="$HOME/.local/bin:$PATH"
-          poetry install --with dev
-
+          cache: 'pip'
+      - <<: *poetry_install
       - name: Lint with ruff
-        run: |
-           poetry run ruff check .
+        run: poetry run ruff check .
 
   migrations:
     runs-on: ubuntu-latest
-    needs: setup-docker
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - <<: *write_dotenv
 
-      - name: Set envs
-        run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
-
-          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
-          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
-          echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env
-          echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
-          echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env
-
-          echo "STRIPE_API_KEY=${{ secrets.STRIPE_API_KEY }}" >> .env
-          echo "STRIPE_EVENTS=checkout.session.completed,payment_intent.succeeded,invoice.payment_succeeded,invoice.payment_failed,payment_intent.payment_failed,customer.subscription.updated,customer.subscription.deleted,invoice.paid" >> .env
-          echo "STRIPE_WEBHOOK_SECRET_KEY=${{ secrets.STRIPE_WEBHOOK_SECRET_KEY }}" >> .env
-
-          echo "BACKEND_DOMAIN=rsapa_backend"
-          echo "BACKEND_PORT=8000"
-
-          echo "DB_PORT=5432" >> .env
-          echo "DB_PASSWORD=test" >> .env
-          echo "DB_USER=test" >> .env
-          echo "DB_NAME=test" >> .env
-          echo "DB_HOST=localhost" >> .env
-
-      - name: Run docker compose
+      - name: Start DB (and optional stripe-listen) via docker compose
         run: |
           docker compose -f local.yml up -d rsapa_database stripe-listen
+          docker compose -f local.yml ps
+          docker compose -f local.yml logs --no-color --tail=50 rsapa_database || true
 
-      - name: Show Postgres logs
-        run: |
-          docker logs $(docker ps -q -f ancestor=postgres:alpine)
+      - <<: *wait_postgres
 
-      - name: Wait for postgres
-        run: |
-          for i in {1..10}; do
-            if docker exec $(docker ps -q -f ancestor=postgres:alpine) pg_isready -U test; then
-              echo "PostgreSQL is ready"
-              exit 0
-            fi
-            echo "Waiting for PostgreSQL..."
-            sleep 5
-          done
-          echo "PostgreSQL failed to start"
-          exit 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+      - <<: *poetry_install
 
-      - name: Install dependencies
-        run: |
-          sudo curl -sSL https://install.python-poetry.org | python3 -
-          export PATH="$HOME/.local/bin:$PATH"
-          poetry install --with dev
-
-      - name: Run migrations
-        run: |
-          poetry run alembic upgrade head
+      - name: Run Alembic migrations
+        run: poetry run alembic upgrade head
 
   tests:
     runs-on: ubuntu-latest
-    needs: setup-docker
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - <<: *write_dotenv
 
-      - name: Set envs
-        run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
-
-          echo "STRIPE_API_KEY=${{ secrets.STRIPE_API_KEY }}" >> .env
-          echo "STRIPE_EVENTS=checkout.session.completed,payment_intent.succeeded,invoice.payment_succeeded,invoice.payment_failed,payment_intent.payment_failed,customer.subscription.updated,customer.subscription.deleted,invoice.paid" >> .env
-          echo "STRIPE_WEBHOOK_SECRET_KEY=${{ secrets.STRIPE_WEBHOOK_SECRET_KEY }}" >> .env
-
-          echo "BACKEND_DOMAIN=rsapa_backend"
-          echo "BACKEND_PORT=8000"
-
-          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
-          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
-          echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> .env
-          echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
-          echo "MAIL_SERVER=${{ secrets.MAIL_SERVER }}" >> .env
-
-          echo "DB_PORT=5432" >> .env
-          echo "DB_PASSWORD=test" >> .env
-          echo "DB_USER=test" >> .env
-          echo "DB_NAME=test" >> .env
-          echo "DB_HOST=localhost" >> .env
-
-      - name: Run docker compose
+      - name: Start DB via docker compose
         run: |
           docker compose -f local.yml up -d rsapa_database
+          docker compose -f local.yml ps
+          docker compose -f local.yml logs --no-color --tail=50 rsapa_database || true
 
-          for i in {1..10}; do
-            if docker exec $(docker ps -q -f ancestor=postgres:alpine) pg_isready -U test; then
-              echo "PostgreSQL is ready"
-              exit 0
-            fi
-            echo "Waiting for PostgreSQL..."
-            sleep 5
-          done
-          echo "PostgreSQL failed to start"
-          exit 1
+      - <<: *wait_postgres
 
-          docker compose -f local.yml run --rm rsapa_backend poetry run alembic upgrade head -d
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+      - <<: *poetry_install
 
-      - name: Install dependencies
-        run: |
-          sudo curl -sSL https://install.python-poetry.org | python3 -
-          export PATH="$HOME/.local/bin:$PATH"
-          poetry install --with dev
-          mkdir media
+      - name: Prepare test artifacts
+        run: mkdir -p media
+
+      - name: Run Alembic (ensure schema up)
+        run: poetry run alembic upgrade head
 
       - name: Run tests
-        run: |
-          poetry run pytest
+        run: poetry run pytest

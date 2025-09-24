@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.domains.auth.utils import CurrentUserDep
 from app.domains.memberships.services import MembershipServiceDep
 from app.domains.memberships.utils.common import get_checkout_session_summary_dictionary
+from app.domains.payments.schemas import DonationRequestSchema
 
 stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -39,7 +40,7 @@ async def fulfill_checkout(
             sig_header=stripe_signature,
             secret=settings.STRIPE_WEBHOOK_SECRET_KEY,
         )
-        logger.info(f"Event: {event, type}, ")
+        logger.info(f"Event: {event.type}, ")
     except stripe.error.SignatureVerificationError:
         logger.warning("Invalid stripe signature")
         raise FulfillCheckoutResponses.INVALID_SIGNATURE
@@ -55,6 +56,29 @@ async def fulfill_checkout(
 class GetCheckoutSessionResponses(Responses):
     NOT_A_SUBSCRIPTION_SESSION = 400, "Not a subscription session"
     FORBIDDEN = 403, "Forbidden"
+
+
+@router.post("/donations/checkout-sessions", summary="Creates a checkout session")
+async def create_donation_checkout_session(data: DonationRequestSchema):
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {"name": "Donation"},
+                        "unit_amount": data.amount,
+                    },
+                    "quantity": 1,
+                }
+            ],
+            success_url="http://localhost:3000/payment/donations?success=true&session_id={CHECKOUT_SESSION_ID}",
+            cancel_url="http://localhost:3000/payment/donations?canceled=true",
+        )
+        return {"url": session.url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get(

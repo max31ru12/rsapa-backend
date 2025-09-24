@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated
 
 import stripe
@@ -164,7 +164,6 @@ async def create_checkout_session(
             status=MembershipStatusEnum.INCOMPLETE,
             user_id=current_user.id,
             membership_type_id=target_membership_type.id,
-            checkout_session_expires_at=datetime.fromtimestamp(checkout_session_expires_at, tz=timezone.utc),
         )
         membership_creation_log_message = f"""
             Membership created:
