@@ -52,6 +52,7 @@ class Settings(BaseSettings, GmailConfig):
 
     STRIPE_API_KEY: str
     STRIPE_WEBHOOK_SECRET_KEY: str
+    STRIPE_PRICE_ID_TEST: str
 
     FRONTEND_DOMAIN: str
 

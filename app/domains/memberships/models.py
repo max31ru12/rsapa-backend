@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import DateTime, Enum as SQLAEnum, ForeignKey, Numeric, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.config import settings
 from app.core.database.mixins import UCIMixin
 from app.core.database.setup_db import Base
 from app.domains.users.models import UserSchema
@@ -39,7 +40,9 @@ class MembershipType(Base):
     duration: Mapped[int] = mapped_column(nullable=False, default=365)
     description: Mapped[str] = mapped_column(nullable=True)
     is_purchasable: Mapped[bool] = mapped_column(nullable=False, default=True, server_default=text("true"))
-    stripe_price_id: Mapped[str] = mapped_column(nullable=True)
+    stripe_price_id: Mapped[str] = mapped_column(
+        default=settings.STRIPE_PRICE_ID_TEST, server_default=settings.STRIPE_PRICE_ID_TEST
+    )
 
     user_memberships: Mapped[list["UserMembership"]] = relationship("UserMembership", back_populates="membership_type")
 

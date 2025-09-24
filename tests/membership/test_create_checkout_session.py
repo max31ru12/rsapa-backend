@@ -25,7 +25,7 @@ async def test_create_checkout_session(
 ) -> None:
     authorization_header, refresh_token_cookie, email = authentication_data
     response = await client.post(
-        f"api/membership/membership-types/{membership_type_id}/checkout-sessions",
+        f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
         headers=authorization_header,
     )
 
@@ -45,7 +45,7 @@ async def test_user_not_authorized(
     membership_type_id,
 ) -> None:
     response = await client.post(
-        f"api/membership/membership-types/{membership_type_id}/checkout-sessions",
+        f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
     )
 
     assert response.status_code == 401
@@ -59,7 +59,7 @@ async def test_purchasing_honorary_membership(
     authorization_header, refresh_token_cookie, email = authentication_data
     honorary_membership_id = 4
     response = await client.post(
-        f"api/membership/membership-types/{honorary_membership_id}/checkout-sessions",
+        f"api/memberships/membership-types/{honorary_membership_id}/checkout-sessions",
         headers=authorization_header,
     )
 
@@ -73,11 +73,11 @@ async def test_checkout_session_lock(
     authorization_header, refresh_token_cookie, email = authentication_data
 
     first_response = await client.post(
-        f"api/membership/membership-types/{membership_type_id}/checkout-sessions",
+        f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
         headers=authorization_header,
     )
     second_response = await client.post(
-        f"api/membership/membership-types/{membership_type_id}/checkout-sessions",
+        f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
         headers=authorization_header,
     )
 
@@ -107,7 +107,7 @@ async def test_membership_already_purchased(
         )
 
     response = await client.post(
-        f"api/membership/membership-types/{membership_type_id}/checkout-sessions",
+        f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
         headers=authorization_header,
     )
 
@@ -137,7 +137,7 @@ async def test_expired_checkout_session_creates_new_session(
         )
 
     response = await client.post(
-        f"api/membership/membership-types/{membership_type_id}/checkout-sessions",
+        f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
         headers=authorization_header,
     )
 
@@ -171,7 +171,7 @@ async def test_multiple_users_can_create_independent_sessions(
         )
 
     response_1 = await client.post(
-        f"api/membership/membership-types/{membership_type_id}/checkout-sessions",
+        f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
         headers=auth_1,
     )
     assert response_1.status_code == 200 or response_1.status_code == 201
@@ -180,7 +180,7 @@ async def test_multiple_users_can_create_independent_sessions(
 
     auth_2, _, email_2 = await authentication_data_factory()
     response_2 = await client.post(
-        f"api/membership/membership-types/{membership_type_id}/checkout-sessions",
+        f"api/memberships/membership-types/{membership_type_id}/checkout-sessions",
         headers=auth_2,
     )
     session_url_2 = response_2.json() if isinstance(response_2.json(), str) else response_2.text

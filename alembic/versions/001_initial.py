@@ -1,8 +1,8 @@
-"""initial
+"""Initial
 
 Revision ID: 001
 Revises:
-Create Date: 2025-08-21 19:08:51.710876
+Create Date: 2025-09-24 18:40:35.670031
 
 """
 
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-from app.core.config import DEV_MODE
+from app.core.config import DEV_MODE, settings
 
 revision: str = "001"
 down_revision: Union[str, None] = None
@@ -32,12 +32,12 @@ def upgrade() -> None:
         sa.Column("subject", sa.String(length=256), nullable=False),
         sa.Column("message", sa.String(length=256), nullable=False),
         sa.Column("answered", sa.Boolean(), server_default=sa.text("false"), nullable=False),
+        sa.Column("_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_contact_messages")),
     )
-
     membership_types_table = op.create_table(
         "membership_types",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -51,10 +51,22 @@ def upgrade() -> None:
         sa.Column("duration", sa.Integer(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
         sa.Column("is_purchasable", sa.Boolean(), server_default=sa.text("true"), nullable=False),
-        sa.Column("stripe_price_id", sa.String(), server_default="price_id_placeholder", nullable=False),
+        sa.Column("stripe_price_id", sa.String(), server_default="price_1SAuXP9SPoTZMPaT50qdxlGo", nullable=False),
+        sa.Column("_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_membership_types")),
     )
-
+    op.create_table(
+        "sponsorship_requests",
+        sa.Column("name", sa.String(length=256), nullable=False),
+        sa.Column("email", sa.String(length=256), nullable=False),
+        sa.Column("company", sa.String(length=256), nullable=False),
+        sa.Column("message", sa.String(), nullable=False),
+        sa.Column("_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_sponsorship_requests")),
+    )
     users_table = op.create_table(
         "users",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -68,31 +80,79 @@ def upgrade() -> None:
         sa.Column("pending", sa.Boolean(), server_default=sa.text("true"), nullable=True),
         sa.Column("institution", sa.String(), nullable=False),
         sa.Column("role", sa.String(), nullable=False),
+        sa.Column("last_password_change", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("email_confirmed", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("_password", sa.String(), nullable=False),
         sa.Column("avatar_path", sa.String(), nullable=True),
+        sa.Column("_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_users")),
         sa.UniqueConstraint("avatar_path", name=op.f("uq_users_avatar_path")),
         sa.UniqueConstraint("phone_number", name=op.f("uq_users_phone_number")),
     )
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
-
     op.create_table(
         "news",
         sa.Column("body", postgresql.JSON(astext_type=sa.Text()), nullable=False),
         sa.Column("is_published", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column("author_id", sa.Integer(), nullable=False),
         sa.Column("is_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
+        sa.Column("_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.ForeignKeyConstraint(["author_id"], ["users.id"], name=op.f("fk_news_author_id_users")),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_news")),
     )
-
+    op.create_table(
+        "payments",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "type",
+            sa.Enum("ONE_TIME", "SUBSCRIPTION_INITIAL", "SUBSCRIPTION_RENEWAL", "REFUND", name="payment_type_enum"),
+            nullable=False,
+        ),
+        sa.Column(
+            "status",
+            sa.Enum(
+                "SUCCEEDED", "PROCESSING", "FAILED", "CANCELED", "REQUIRES_PAYMENT_METHOD", name="payment_status_enum"
+            ),
+            nullable=False,
+        ),
+        sa.Column("amount_total", sa.Integer(), nullable=False),
+        sa.Column("currency", sa.String(), nullable=False),
+        sa.Column("payment_intent_id", sa.String(length=128), nullable=True),
+        sa.Column("charge_id", sa.String(length=128), nullable=True),
+        sa.Column("invoice_id", sa.String(length=128), nullable=False),
+        sa.Column("subscription_id", sa.String(length=128), nullable=False),
+        sa.Column("checkout_session_id", sa.String(length=128), nullable=True),
+        sa.Column("stripe_customer_id", sa.String(length=128), nullable=False),
+        sa.Column("price_id", sa.String(length=128), nullable=False),
+        sa.Column("product_id", sa.String(length=128), nullable=False),
+        sa.Column("billing_reason", sa.String(length=64), nullable=False),
+        sa.Column("receipt_url", sa.String(length=512), nullable=True),
+        sa.Column("livemode", sa.Boolean(), nullable=False),
+        sa.Column("description", sa.String(length=512), nullable=True),
+        sa.Column("failure_code", sa.String(length=128), nullable=True),
+        sa.Column("failure_message", sa.String(length=1024), nullable=True),
+        sa.Column("payment_method_type", sa.String(length=64), nullable=True),
+        sa.Column("pm_last4", sa.String(length=8), nullable=True),
+        sa.Column("stripe_created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("_metadata", sa.JSON(), nullable=True),
+        sa.Column("user_id", sa.Integer(), nullable=True),
+        sa.Column("_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], name=op.f("fk_payments_user_id_users")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_payments")),
+    )
+    op.create_index(op.f("ix_payments_charge_id"), "payments", ["charge_id"], unique=False)
+    op.create_index(op.f("ix_payments_checkout_session_id"), "payments", ["checkout_session_id"], unique=False)
+    op.create_index(op.f("ix_payments_invoice_id"), "payments", ["invoice_id"], unique=True)
+    op.create_index(op.f("ix_payments_payment_intent_id"), "payments", ["payment_intent_id"], unique=False)
+    op.create_index(op.f("ix_payments_stripe_customer_id"), "payments", ["stripe_customer_id"], unique=False)
+    op.create_index(op.f("ix_payments_subscription_id"), "payments", ["subscription_id"], unique=False)
     op.create_table(
         "users_memberships",
-        sa.Column("start_date", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("end_date", sa.DateTime(timezone=True), nullable=False),
         sa.Column(
             "status",
             sa.Enum(
@@ -107,8 +167,23 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
+        sa.Column(
+            "approval_status",
+            sa.Enum("APPROVED", "PENDING", "REJECTED", name="approval_status_enum"),
+            server_default=sa.text("'PENDING'"),
+            nullable=False,
+        ),
+        sa.Column("stripe_subscription_id", sa.String(), nullable=True),
+        sa.Column("stripe_customer_id", sa.String(), nullable=True),
+        sa.Column("latest_invoice_id", sa.String(), nullable=True),
+        sa.Column("current_period_end", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("has_access", sa.Boolean(), nullable=False),
+        sa.Column("cancel_at_period_end", sa.Boolean(), server_default=sa.text("false"), nullable=False),
+        sa.Column("checkout_session_expires_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("checkout_url", sa.String(), nullable=True),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("membership_type_id", sa.Integer(), nullable=False),
+        sa.Column("_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
@@ -119,6 +194,9 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], name=op.f("fk_users_memberships_user_id_users")),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_users_memberships")),
+        sa.UniqueConstraint("latest_invoice_id", name=op.f("uq_users_memberships_latest_invoice_id")),
+        sa.UniqueConstraint("stripe_customer_id", name=op.f("uq_users_memberships_stripe_customer_id")),
+        sa.UniqueConstraint("user_id", name=op.f("uq_users_memberships_user_id")),
     )
     # ### end Alembic commands ###
 
@@ -151,6 +229,7 @@ def upgrade() -> None:
                 "duration": 365,
                 "description": "Any legally qualified Russian-speaking specialist (MD, DO, MBBS, PhD, or equivalent degree). practicing pathology in the united states",
                 "is_purchasable": True,
+                "stripe_price_id": settings.STRIPE_PRICE_ID_TEST,
             },
             {
                 "name": "Trainee Member",
@@ -159,6 +238,7 @@ def upgrade() -> None:
                 "duration": 365,
                 "description": "Russian-speaking residents or fellows in pathology or related disciplines in the United States.",
                 "is_purchasable": True,
+                "stripe_price_id": settings.STRIPE_PRICE_ID_TEST,
             },
             {
                 "name": "Affiliate Member",
@@ -167,6 +247,7 @@ def upgrade() -> None:
                 "duration": 365,
                 "description": "Russian-speaking pathologists, scientists, researchers, or allied professionals interested in the field of pathology whose involvement is relevant and contributes meaningfully to the Society (non-voting).",
                 "is_purchasable": True,
+                "stripe_price_id": settings.STRIPE_PRICE_ID_TEST,
             },
             {
                 "name": "Honorary Member",
@@ -175,6 +256,7 @@ def upgrade() -> None:
                 "duration": 365,
                 "description": "Individuals recognized fo exceptional service to the field of pathology or the Society (non-voting).",
                 "is_purchasable": False,
+                "stripe_price_id": settings.STRIPE_PRICE_ID_TEST,
             },
             {
                 "name": "Pathway Member",
@@ -183,6 +265,7 @@ def upgrade() -> None:
                 "duration": 365,
                 "description": "Russian-speaking individuals pursuing or transition into a medical career in the United States. This includes medical students and internationally trained medical graduates seeking mentorship and professional development as they prepare for pathology practice in the United States (non-voting).",
                 "is_purchasable": True,
+                "stripe_price_id": settings.STRIPE_PRICE_ID_TEST,
             },
         ],
     )
@@ -191,9 +274,17 @@ def upgrade() -> None:
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table("users_memberships")
+    op.drop_index(op.f("ix_payments_subscription_id"), table_name="payments")
+    op.drop_index(op.f("ix_payments_stripe_customer_id"), table_name="payments")
+    op.drop_index(op.f("ix_payments_payment_intent_id"), table_name="payments")
+    op.drop_index(op.f("ix_payments_invoice_id"), table_name="payments")
+    op.drop_index(op.f("ix_payments_checkout_session_id"), table_name="payments")
+    op.drop_index(op.f("ix_payments_charge_id"), table_name="payments")
+    op.drop_table("payments")
     op.drop_table("news")
     op.drop_index(op.f("ix_users_email"), table_name="users")
     op.drop_table("users")
+    op.drop_table("sponsorship_requests")
     op.drop_table("membership_types")
     op.drop_table("contact_messages")
     # ### end Alembic commands ###
@@ -204,4 +295,12 @@ def downgrade() -> None:
 
         users_memberships_enum = postgresql.ENUM(name="users_membership_enum")
         users_memberships_enum.drop(op.get_bind(), checkfirst=True)
-    # ### end Alembic commands ###
+
+        approval_status_enum = postgresql.ENUM(name="approval_status_enum")
+        approval_status_enum.drop(op.get_bind(), checkfirst=True)
+
+        payment_status_enum = postgresql.ENUM(name="payment_status_enum")
+        payment_status_enum.drop(op.get_bind(), checkfirst=True)
+
+        payment_type_enum = postgresql.ENUM(name="payment_type_enum")
+        payment_type_enum.drop(op.get_bind(), checkfirst=True)

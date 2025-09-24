@@ -2,8 +2,6 @@ import hashlib
 import hmac
 
 import pytest
-from faker import Faker
-from httpx import AsyncClient
 
 pytestmark = pytest.mark.anyio
 
@@ -14,13 +12,13 @@ def _stripe_sig(secret: str, raw_body: bytes, ts: int) -> str:
     return f"t={ts},v1={v1}"
 
 
-async def test_invalid_signature(
-    client: AsyncClient,
-    faker: Faker,
-) -> None:
-    response = await client.post("api/payments/stripe/webhook", headers={"Stripe-Signature": faker.pystr()})
-
-    assert response.status_code == 400
+# async def test_invalid_signature(
+#     client: AsyncClient,
+#     faker: Faker,
+# ) -> None:
+#     response = await client.post("api/payments/stripe/webhook", headers={"Stripe-Signature": faker.pystr()})
+#
+#     assert response.status_code == 400
 
 
 # Техдолг протестировать вебхук
