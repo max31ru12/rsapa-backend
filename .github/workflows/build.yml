@@ -51,13 +51,14 @@ jobs:
           BACKEND_DOMAIN=rsapa_backend
           BACKEND_PORT=8000
 
-          FRONTEND_DOMAIN=localhost:3000
+          FRONTEND_DOMAIN=http://localhost:3000
+          FRONTEND_DOMAIN_HTTP=http://localhost:3000
 
-          GMAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
-          GMAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-          GMAIL_FROM=${{ secrets.MAIL_FROM }}
-          GMAIL_PORT=${{ secrets.MAIL_PORT }}
-          GMAIL_SERVER=${{ secrets.MAIL_SERVER }}
+          GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
+          GMAIL_PASSWORD=${{ secrets.GMAIL_PASSWORD }}
+          GMAIL_FROM=${{ secrets.GMAIL_FROM }}
+          GMAIL_PORT=${{ secrets.GMAIL_PORT }}
+          GMAIL_SERVER=${{ secrets.GMAIL_SERVER }}
 
           DB_PORT=5432
           DB_PASSWORD=test
@@ -125,13 +126,14 @@ jobs:
           BACKEND_DOMAIN=rsapa_backend
           BACKEND_PORT=8000
 
-          FRONTEND_DOMAIN=localhost:3000
+          FRONTEND_DOMAIN=http://localhost:3000
+          FRONTEND_DOMAIN_HTTP=http://localhost:3000
 
-          GMAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
-          GMAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
-          GMAIL_FROM=${{ secrets.MAIL_FROM }}
-          GMAIL_PORT=${{ secrets.MAIL_PORT }}
-          GMAIL_SERVER=${{ secrets.MAIL_SERVER }}
+          GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
+          GMAIL_PASSWORD=${{ secrets.GMAIL_PASSWORD }}
+          GMAIL_FROM=${{ secrets.GMAIL_FROM }}
+          GMAIL_PORT=${{ secrets.GMAIL_PORT }}
+          GMAIL_SERVER=${{ secrets.GMAIL_SERVER }}
 
           DB_PORT=5432
           DB_PASSWORD=test
@@ -179,13 +181,3 @@ jobs:
 
       - name: Run tests
         run: poetry run pytest
-
-  deploy:
-    runs-on: ubuntu-latest
-    # deploy стартует только если migrations и tests прошли успешно
-    needs: [ prepare, migrations, tests ]
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy
-        run: echo "🚀 Deploying..."

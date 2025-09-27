@@ -73,13 +73,17 @@ app.include_router(payments_router, prefix="/api")
 app.include_router(users_admin_router, prefix="/api/stuff")
 app.include_router(membership_admin_router, prefix="/api/stuff")
 
-
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-]
-
+if DEV_MODE:
+    origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+    ]
+else:
+    origins = [
+        settings.FRONTEND_DOMAIN,
+        settings.FRONTEND_DOMAIN_HTTP,
+    ]
 
 # Настройка CORS
 app.add_middleware(

@@ -52,7 +52,7 @@ class AuthService:
 
     async def reset_password(self, email: str):
         token = self.cryptographer.create_token(email)
-        link = f"http://{settings.FRONTEND_DOMAIN}/auth/password-reset/confirm/?token={token.decode()}"
+        link = f"{settings.FRONTEND_DOMAIN}/auth/password-reset/confirm/?token={token.decode()}"
         message = f"""
         Hello,
 
