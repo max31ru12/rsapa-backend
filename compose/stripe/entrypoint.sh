@@ -10,4 +10,3 @@ exec stripe listen \
   --forward-to "http://${BACKEND_DOMAIN}:${BACKEND_PORT}/api/payments/stripe/webhook" \
   --events "$STRIPE_EVENTS" \
   --skip-verify \
-  --log-level=debug

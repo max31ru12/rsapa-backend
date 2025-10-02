@@ -192,8 +192,8 @@ async def create_checkout_session(
             metadata=metadata,
             subscription_data={"metadata": metadata},  # передается в invoice.paid
             customer_email=current_user.email,
-            success_url="http://localhost:3000/payment/membership?success=true&session_id={CHECKOUT_SESSION_ID}",
-            cancel_url="http://localhost:3000/payment/membership?canceled=true",
+            success_url=f"{settings.FRONTEND_DOMAIN}/payment/membership?success=true&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.FRONTEND_DOMAIN}/payment/membership?canceled=true",
             expires_at=checkout_session_expires_at,
         )
     except stripe.error.StripeError as e:
