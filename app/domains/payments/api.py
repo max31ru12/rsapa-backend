@@ -34,6 +34,8 @@ async def fulfill_checkout(
 ) -> None:
     payload = await request.body()
 
+    logger.info(f"\n\n{payload=} {settings.STRIPE_WEBHOOK_SECRET_KEY=}\n\n")
+
     try:
         event = stripe.Webhook.construct_event(
             payload=payload,
