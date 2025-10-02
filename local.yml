@@ -29,8 +29,6 @@ services:
       dockerfile: compose/stripe/Dockerfile
     env_file:
       - .env
-    volumes:
-      - stripe_runtime:/run/stripe
     restart: unless-stopped
     networks:
       - default
@@ -45,8 +43,6 @@ services:
       - stripe-listen
     env_file:
       - .env
-    environment:
-      STRIPE_WEBHOOK_SECRET_KEY: /run/stripe/webhook_secret
     ports:
       - "8000:8000"
     restart: unless-stopped
