@@ -99,7 +99,8 @@ async def get_users_permissions(
     access_token: Annotated[HTTPAuthorizationCredentials, Depends(access_token_header)],
 ):
     user = await get_current_user(user_service, access_token)
-    return await permission_service.get_user_permissions(user.id)
+    user_permissions = await permission_service.get_user_permissions(user.id)
+    return list(map(lambda permissions: permissions.action, user_permissions))
 
 
 RefreshTokenDep = Annotated[str, Depends(verify_refresh_token)]
