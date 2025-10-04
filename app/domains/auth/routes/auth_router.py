@@ -13,7 +13,7 @@ from app.domains.auth.schemas import (
     ResetPasswordSchema,
 )
 from app.domains.auth.services import AuthServiceDep
-from app.domains.auth.utils import (
+from app.domains.shared.deps import (
     CurrentUserDep,
     RefreshTokenDep,
     create_access_token,

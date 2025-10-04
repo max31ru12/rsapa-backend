@@ -2,7 +2,7 @@ import pytest
 from faker import Faker
 from httpx import AsyncClient
 
-from app.domains.auth.utils import create_refresh_token
+from app.domains.shared.deps import create_refresh_token
 from tests.auth.utils import decode_jwt
 
 pytestmark = pytest.mark.anyio

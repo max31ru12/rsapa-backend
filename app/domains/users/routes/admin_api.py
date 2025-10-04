@@ -1,16 +1,19 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi.params import Path
 
 from app.core.common.request_params import OrderingParamsDep, PaginationParamsDep
 from app.core.common.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.core.database.base_repository import InvalidOrderAttributeError
-from app.domains.auth.utils import AdminUserDep
+from app.domains.auth.services import AuthServiceDep
+from app.domains.permissions.models import PermissionSchema
+from app.domains.shared.deps import AdminUserDep, UserPermissionsDep
 from app.domains.users.filters import UsersFilter
 from app.domains.users.models import UserSchema
 from app.domains.users.services import UserServiceDep
 
-router = APIRouter(tags=["Users admin"], prefix="/users")
+router = APIRouter(tags=["Admin Users"], prefix="/users")
 
 
 class UserListResponses(InvalidRequestParamsResponses):
@@ -41,3 +44,26 @@ async def get_users(
         )
     except InvalidOrderAttributeError:
         raise UserListResponses.INVALID_SORTER_FIELD
+
+
+@router.get("/{user_id}/permissions")
+async def get_user_permissions(
+    user_id: Annotated[int, Path()],
+    auth_service: AuthServiceDep,
+    current_user_permissions: UserPermissionsDep,
+    admin: AdminUserDep,
+) -> list[PermissionSchema]:
+    permissions = await auth_service.get_user_permissions(user_id)
+
+    return [PermissionSchema.from_orm(permission) for permission in permissions]
+
+
+@router.post("/{user_id}/permissions")
+async def assign_permissions(
+    user_id: Annotated[int, Path()],
+    auth_service: AuthServiceDep,
+    current_user_permissions: UserPermissionsDep,
+    admin: AdminUserDep,
+    permissions_ids: list[int],
+):
+    return permissions_ids

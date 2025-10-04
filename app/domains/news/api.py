@@ -8,10 +8,10 @@ from app.core.common.responses import InvalidRequestParamsResponses, PaginatedRe
 from app.core.config import settings
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.utils.save_file import save_file
-from app.domains.auth.utils import AdminUserDep
 from app.domains.news.filters import NewsFilter
 from app.domains.news.models import CreateNewsSchema, NewsSchema, UpdateNewsSchema
 from app.domains.news.services import NewsServiceDep
+from app.domains.shared.deps import AdminUserDep
 
 router = APIRouter(prefix="/news", tags=["News"])
 

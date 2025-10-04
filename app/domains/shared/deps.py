@@ -9,6 +9,8 @@ from starlette import status
 from starlette.exceptions import HTTPException
 
 from app.core.config import settings
+from app.domains.permissions.models import Permission
+from app.domains.permissions.services import PermissionServiceDep
 from app.domains.users.models import User
 from app.domains.users.services import UserServiceDep
 
@@ -91,6 +93,16 @@ async def get_admin_user(
     return user
 
 
+async def get_users_permissions(
+    permission_service: PermissionServiceDep,
+    user_service: UserServiceDep,
+    access_token: Annotated[HTTPAuthorizationCredentials, Depends(access_token_header)],
+):
+    user = await get_current_user(user_service, access_token)
+    return await permission_service.get_user_permissions(user.id)
+
+
 RefreshTokenDep = Annotated[str, Depends(verify_refresh_token)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 AdminUserDep = Annotated[User, Depends(get_admin_user)]
+UserPermissionsDep = Annotated[list[Permission], Depends(get_users_permissions)]

@@ -2,9 +2,9 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.domains.auth.utils import CurrentUserDep
 from app.domains.memberships.models import UserMembership
 from app.domains.memberships.services import MembershipServiceDep
+from app.domains.shared.deps import CurrentUserDep
 
 
 async def current_user_membership(

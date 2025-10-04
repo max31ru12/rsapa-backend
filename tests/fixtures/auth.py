@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from faker import Faker
 
-from app.domains.auth.utils import create_access_token, create_refresh_token
+from app.domains.shared.deps import create_access_token, create_refresh_token
 from app.domains.users.infrastructure import UserUnitOfWork
 from app.domains.users.models import User
 
@@ -56,7 +56,7 @@ def authentication_data(
 @pytest.fixture
 def authentication_data_factory(user_uow: UserUnitOfWork, faker: Faker):
     async def _factory():
-        from app.domains.auth.utils import create_access_token, create_refresh_token
+        from app.domains.shared.deps import create_access_token, create_refresh_token
 
         user_data = {
             "email": faker.email(),
