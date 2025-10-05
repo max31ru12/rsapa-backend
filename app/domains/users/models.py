@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Optional
 
 import phonenumbers
 from passlib.hash import bcrypt
@@ -80,6 +80,10 @@ class UserSchema(BaseModel):
     model_config = {
         "from_attributes": True,
     }
+
+
+class UpdateUserByAdminSchema(BaseModel):
+    stuff: Optional[bool] = Field(None, description="Grant or revoke admin role for user")
 
 
 class UpdateUserSchema(BaseModel):

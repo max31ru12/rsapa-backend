@@ -83,6 +83,21 @@ class PermissionsService:
                 if p in user.permissions:
                     user.permissions.remove(p)
 
+    async def set_users_permissions(self, user_id: int, permissions_ids):
+        async with self.uow:
+            user_stmt = select(User).options(selectinload(User.permissions)).where(User.id == user_id)
+            user: User = (await self.uow._session.execute(user_stmt)).scalar_one_or_none()
+
+            if user is None:
+                raise ValueError("User with provided ID not found")
+
+            permissions_stmt = select(Permission).where(Permission.id.in_(permissions_ids))
+            permissions = (await self.uow._session.execute(permissions_stmt)).scalars().all()
+            user.permissions = permissions
+
+            await self.uow._session.commit()
+            return user.permissions
+
 
 def get_permissions_service(
     uow: Annotated[PermissionsUnitOfWork, Depends(get_permissions_unit_of_work)],
