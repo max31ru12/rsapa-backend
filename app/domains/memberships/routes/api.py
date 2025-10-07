@@ -8,7 +8,6 @@ from fastapi_exception_responses import Responses
 from loguru import logger
 
 from app.core.config import settings
-from app.domains.auth.utils import AdminUserDep, CurrentUserDep
 from app.domains.memberships.dependencies import CurrentUserMembershipDep
 from app.domains.memberships.models import (
     ExtendedUserMembershipSchema,
@@ -23,6 +22,7 @@ from app.domains.memberships.utils.checkout_session_utils import (
     check_membership_type_already_purchased,
     check_session_is_locked,
 )
+from app.domains.shared.deps import AdminUserDep, CurrentUserDep
 
 stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="/memberships", tags=["Membership"])

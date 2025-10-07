@@ -9,10 +9,10 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
 from app.core.config import settings
-from app.domains.auth.utils import CurrentUserDep
 from app.domains.memberships.services import MembershipServiceDep
 from app.domains.memberships.utils.common import get_checkout_session_summary_dictionary
 from app.domains.payments.schemas import DonationRequestSchema
+from app.domains.shared.deps import CurrentUserDep
 
 stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -33,8 +33,6 @@ async def fulfill_checkout(
     stripe_signature: str = Header(alias="Stripe-Signature"),
 ) -> None:
     payload = await request.body()
-
-    logger.info(f"\n\n{payload=} {settings.STRIPE_WEBHOOK_SECRET_KEY=}\n\n")
 
     try:
         event = stripe.Webhook.construct_event(

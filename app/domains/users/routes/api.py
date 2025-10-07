@@ -9,7 +9,7 @@ from app.core.common.responses import InvalidRequestParamsResponses, PaginatedRe
 from app.core.config import BASE_DIR, settings
 from app.core.database.base_repository import InvalidOrderAttributeError
 from app.core.utils.save_file import save_file
-from app.domains.auth.utils import CurrentUserDep
+from app.domains.shared.deps import CurrentUserDep
 from app.domains.users.exceptions import InvalidPasswordError
 from app.domains.users.filters import UsersFilter
 from app.domains.users.models import ChangePasswordSchema, UpdateUserSchema, UserSchema

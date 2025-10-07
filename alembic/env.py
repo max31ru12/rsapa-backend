@@ -12,6 +12,7 @@ from app.domains.feedback.models import ContactMessage, SponsorshipRequest  # no
 from app.domains.memberships.models import MembershipType, UserMembership  # noqa
 from app.domains.news.models import News  # noqa
 from app.domains.payments.models import Payment  # noqa
+from app.domains.permissions.models import Permission, UserPermission  # noqa
 from app.domains.users.models import User  # noqa
 
 # this is the Alembic Config object, which provides

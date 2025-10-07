@@ -9,7 +9,6 @@ from app.core.common.request_params import OrderingParamsDep, PaginationParamsDe
 from app.core.common.responses import InvalidRequestParamsResponses, PaginatedResponse
 from app.core.config import settings
 from app.core.database.base_repository import InvalidOrderAttributeError
-from app.domains.auth.utils import AdminUserDep
 from app.domains.memberships.filters import UserMembershipsFilter
 from app.domains.memberships.models import (
     ExtendedUserMembershipSchema,
@@ -18,6 +17,7 @@ from app.domains.memberships.models import (
     UserMembershipSchema,
 )
 from app.domains.memberships.services import MembershipServiceDep
+from app.domains.shared.deps import AdminUserDep
 
 stripe.api_key = settings.STRIPE_API_KEY
 router = APIRouter(prefix="/memberships", tags=["Admin Membership"])

@@ -18,7 +18,7 @@ class UserPermissionRepository(SQLAlchemyRepository):
     model = UserPermission
 
 
-class AuthUnitOfWork(SQLAlchemyUnitOfWork):
+class PermissionsUnitOfWork(SQLAlchemyUnitOfWork):
     def __init__(self, session=None):
         super().__init__(session)
         self.user_repository = UserRepository(self._session)
@@ -26,5 +26,5 @@ class AuthUnitOfWork(SQLAlchemyUnitOfWork):
         self.user_permission_repository = UserPermissionRepository(self._session)
 
 
-def get_auth_unit_of_work(session: Annotated[AsyncSession, Depends(session_getter)]) -> AuthUnitOfWork:
-    return AuthUnitOfWork(session)
+def get_permissions_unit_of_work(session: Annotated[AsyncSession, Depends(session_getter)]) -> PermissionsUnitOfWork:
+    return PermissionsUnitOfWork(session)

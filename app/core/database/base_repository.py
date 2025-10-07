@@ -93,6 +93,10 @@ class SQLAlchemyRepository(BaseRepository, Generic[T]):
         stmt = stmt.filter_by(**kwargs)
         return (await self.session.execute(stmt)).scalars().first()
 
+    async def get_all_by_kwargs(self, **kwargs) -> Sequence[T]:
+        stmt = select(self.model).filter_by(**kwargs)
+        return (await self.session.execute(stmt)).scalars().all()
+
     async def create(self, **kwargs) -> T:
         instance = self.model(**kwargs)
         self.session.add(instance)
